@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gomodule/redigo/redis"
+	"github.com/garyburd/redigo/redis"
 )
 
 type ConnPool interface {
@@ -17,23 +17,16 @@ type SingleHostPool struct {
 }
 
 func NewSingleHostPool(host string) *SingleHostPool {
-	pool := &redis.Pool{
-		// Other pool configuration not shown in this example.
-		Dial: func() (redis.Conn, error) {
-			c, err := redis.Dial("tcp", host)
-			if err != nil {
-				return nil, err
-			}
-			return c, nil
-		},
-	}
-	pool.TestOnBorrow = func(c redis.Conn, t time.Time) (err error) {
+	ret := redis.NewPool(func() (redis.Conn, error) {
+		return redis.Dial("tcp", host)
+	}, maxConns)
+	ret.TestOnBorrow = func(c redis.Conn, t time.Time) (err error) {
 		if time.Since(t) > time.Second {
 			_, err = c.Do("PING")
 		}
 		return err
 	}
-	return &SingleHostPool{pool}
+	return &SingleHostPool{ret}
 }
 
 type MultiHostPool struct {
@@ -56,16 +49,9 @@ func (p *MultiHostPool) Get() redis.Conn {
 	host := p.hosts[rand.Intn(len(p.hosts))]
 	pool, found := p.pools[host]
 	if !found {
-		pool := &redis.Pool{
-			// Other pool configuration not shown in this example.
-			Dial: func() (redis.Conn, error) {
-				c, err := redis.Dial("tcp", host)
-				if err != nil {
-					return nil, err
-				}
-				return c, nil
-			},
-		}
+		pool = redis.NewPool(func() (redis.Conn, error) {
+			return redis.Dial("tcp", host)
+		}, maxConns)
 		pool.TestOnBorrow = func(c redis.Conn, t time.Time) error {
 			if time.Since(t).Seconds() > 1 {
 				_, err := c.Do("PING")
