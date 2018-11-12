@@ -83,11 +83,10 @@ func TestClient_Range(t *testing.T) {
 	client.CreateKey(key, defaultDuration, defaultMaxSamplesPerChunk)
 	now := time.Now().Unix()
 	pi := 3.14159265359
-	halfPi:= pi /2
+	halfPi := pi / 2
 
 	client.Add(key, now-2, halfPi)
 	client.Add(key, now, pi)
-
 
 	dataPoints, err := client.Range(key, now-1, now)
 	assert.Equal(t, nil, err)
@@ -96,11 +95,26 @@ func TestClient_Range(t *testing.T) {
 
 	dataPoints, err = client.Range(key, now-2, now)
 	assert.Equal(t, nil, err)
-	expected = []DataPoint{{timestamp: now-2, value: halfPi},{timestamp: now, value: pi}}
+	expected = []DataPoint{{timestamp: now - 2, value: halfPi}, {timestamp: now, value: pi}}
 	assert.Equal(t, expected, dataPoints)
 
 	dataPoints, err = client.Range(key, now-4, now-3)
 	assert.Equal(t, nil, err)
 	expected = []DataPoint{}
 	assert.Equal(t, expected, dataPoints)
-	}
+}
+
+func TestClient_AggRange(t *testing.T) {
+	key := "test_aggRange"
+	client.CreateKey(key, defaultDuration, defaultMaxSamplesPerChunk)
+	now := time.Now().Unix()
+	value := 5.0
+	value2 := 6.0
+
+	client.Add(key, now-2, value)
+	client.Add(key, now-1, value2)
+
+	dataPoints, err := client.AggRange(key, now-60, now, CountAggregation, 10)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, 2.0, dataPoints[0].value)
+}

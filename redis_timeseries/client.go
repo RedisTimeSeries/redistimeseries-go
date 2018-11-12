@@ -273,3 +273,23 @@ func (client *Client) Range(key string, fromTimestamp int64, toTimestamp int64) 
 	dataPoints, err = parseDataPoints(info)
 	return dataPoints, err
 }
+
+// AggRange - aggregation over a ranged query
+// args:
+// key - time series key name
+// fromTimestamp - start of range
+// toTimestamp - end of range
+// aggType - aggregation type
+// bucketSizeSec - time bucket for aggregation
+func (client *Client) AggRange(key string, fromTimestamp int64, toTimestamp int64, aggType AggregationType,
+	bucketSizeSec int) (dataPoints []DataPoint, err error) {
+	conn := client.pool.Get()
+	defer conn.Close()
+	info, err := conn.Do("TS.RANGE", key, strconv.FormatInt(fromTimestamp, 10),
+		strconv.FormatInt(toTimestamp, 10), aggType.String(), bucketSizeSec)
+	if err != nil {
+		return nil, err
+	}
+	dataPoints, err = parseDataPoints(info)
+	return dataPoints, err
+}
