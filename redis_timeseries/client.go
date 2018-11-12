@@ -3,7 +3,9 @@ package redis_timeseries
 import (
 	"errors"
 	"fmt"
+	"github.com/levenlabs/golib/timeutil"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 
@@ -129,7 +131,6 @@ func ParseInfo(result interface{}, err error) (info KeyInfo, outErr error) {
 
 // Info create a new time-series
 func (client *Client) Info(key string) (res KeyInfo, err error) {
-	//TODO: parse rules
 	conn := client.pool.Get()
 	defer conn.Close()
 	res, err = ParseInfo(conn.Do("TS.INFO", key))
@@ -196,5 +197,21 @@ func (client *Client) DeleteRule(sourceKey string, destinationKey string) (err e
 	conn := client.pool.Get()
 	defer conn.Close()
 	_, err = conn.Do("TS.DELETERULE", sourceKey, destinationKey)
+	return err
+}
+
+func floatToStr(inputFloat float64) string {
+	return strconv.FormatFloat(inputFloat, 'g', 1, 64)
+}
+
+// add - append a new value to the series
+// args:
+// key - time series key name
+// timestamp - time of value
+// value - value
+func (client *Client) Add(key string, timestamp timeutil.Timestamp, value float64) (err error) {
+	conn := client.pool.Get()
+	defer conn.Close()
+	_, err = conn.Do("TS.ADD", key, timestamp.String(), floatToStr(value))
 	return err
 }

@@ -1,6 +1,7 @@
 package redis_timeseries
 
 import (
+	"github.com/levenlabs/golib/timeutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/garyburd/redigo/redis"
 	"testing"
@@ -65,4 +66,15 @@ func TestDeleteRule(t *testing.T) {
 	assert.Equal(t, 0, len(info.Rules))
 	err = client.DeleteRule(key, destKey)
 	assert.Equal(t, redis.Error("TSDB: compaction rule does not exist"), err)
+}
+
+func TestAdd(t *testing.T) {
+	key := "test_ADD"
+	now := timeutil.TimestampNow()
+	PI := 3.14159265359
+	client.CreateKey(key, defaultDuration, defaultMaxSamplesPerChunk)
+	err := client.Add(key, now , PI)
+	assert.Equal(t, nil, err)
+	info, _ := client.Info(key)
+	assert.Equal(t, int(now.Unix()), info.LastTimestamp)
 }
