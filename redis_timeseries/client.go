@@ -187,3 +187,14 @@ func (client *Client) CreateRule(sourceKey string, aggType AggregationType, buck
 	_, err = conn.Do("TS.CREATERULE", sourceKey, aggType.String(), bucketSizeSec, destinationKey)
 	return err
 }
+
+// deleterule - delete a compaction rule
+// args:
+// SOURCE_KEY - key name for source time series
+// DEST_KEY - key name for destination time series
+func (client *Client) DeleteRule(sourceKey string, destinationKey string) (err error) {
+	conn := client.pool.Get()
+	defer conn.Close()
+	_, err = conn.Do("TS.DELETERULE", sourceKey, destinationKey)
+	return err
+}
