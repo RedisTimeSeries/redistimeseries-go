@@ -2,6 +2,7 @@ package redis_timeseries
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -50,37 +51,139 @@ func (client *Client) CreateKey(key string, retentionSecs time.Duration, maxSamp
 	return err
 }
 
-func ParseInfo(result interface{}, err error) (intMap map[string]int64, outErr error) {
-	values, err := redis.Values(result, err)
+type Rule struct {
+	DestKey       string
+	BucketSizeSec int
+	AggType       AggregationType
+}
+
+type KeyInfo struct {
+	ChunkCount         int
+	MaxSamplesPerChunk int
+	LastTimestamp      int
+	RetentionSecs      int
+	Rules              []Rule
+}
+
+func ParseRules(ruleInterface interface{}, err error) (rules []Rule, retErr error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(values)%2 != 0 {
-		return nil, errors.New("ParseInfo expects even number of values result")
+	ruleSlice, err := redis.Values(ruleInterface, nil)
+	if err != nil {
+		return nil, err
 	}
+	for _, ruleSlice := range ruleSlice {
 
-	var key string
-	var value int64
-	intMap = make(map[string]int64, (len(values)-1)/2)
-	for i := 0; i < len(values); i += 2 {
-		key, err = redis.String(values[i], nil) //string(values[i].([]byte))
-		if key == "rules" {
-			continue
-		}
-		value, err = redis.Int64(values[i+1], nil) // string(values[i].([]byte)) // strconv.ParseInt(string(values[i+1].([]byte)), 10, 0)
+		ruleValues, err := redis.Values(ruleSlice, nil)
 		if err != nil {
 			return nil, err
 		}
-		intMap[key] = value
+		destKey, err := redis.String(ruleValues[0], nil)
+		if err != nil {
+			return nil, err
+		}
+		bucketSizeSec, err := redis.Int(ruleValues[1], nil)
+		if err != nil {
+			return nil, err
+		}
+		aggType, err := toAggregationType(ruleValues[2])
+		if err != nil {
+			return nil, err
+		}
+		rules = append(rules, Rule{destKey, bucketSizeSec, aggType})
 	}
-	return intMap, nil
+	return rules, nil
+}
+
+func ParseInfo(result interface{}, err error) (info KeyInfo, outErr error) {
+	values, err := redis.Values(result, nil)
+	if err != nil {
+		return KeyInfo{}, err
+	}
+	if len(values)%2 != 0 {
+		return KeyInfo{}, errors.New("ParseInfo expects even number of values result")
+	}
+	var key string
+	for i := 0; i < len(values); i += 2 {
+		key, err = redis.String(values[i], nil)
+		switch key {
+		case "rules":
+			info.Rules, err = ParseRules(values[i+1], nil)
+		case "retentionSecs":
+			info.RetentionSecs, err = redis.Int(values[i+1], nil)
+		case "chunkCount":
+			info.ChunkCount, err = redis.Int(values[i+1], nil)
+		case "maxSamplesPerChunk":
+			info.MaxSamplesPerChunk, err = redis.Int(values[i+1], nil)
+		case "lastTimestamp":
+			info.LastTimestamp, err = redis.Int(values[i+1], nil)
+		}
+		if err != nil {
+			return KeyInfo{}, err
+		}
+	}
+
+	return info, nil
 }
 
 // Info create a new time-series
-func (client *Client) Info(key string) (res interface{}, err error) {
+func (client *Client) Info(key string) (res KeyInfo, err error) {
 	//TODO: parse rules
 	conn := client.pool.Get()
 	defer conn.Close()
 	res, err = ParseInfo(conn.Do("TS.INFO", key))
 	return res, err
+}
+
+//go:generate stringer -type=AggregationType
+type AggregationType int
+
+const (
+	AvgAggregation AggregationType = iota
+	SumAggregation
+	MinAggregation
+	MaxAggregation
+	CountAggregation
+	FirstAggregation
+	LastAggregation
+)
+
+var aggToString = map[AggregationType]string{
+	AvgAggregation:   "AVG",
+	SumAggregation:   "SUM",
+	MinAggregation:   "MIN",
+	MaxAggregation:   "MAX",
+	CountAggregation: "COUNT",
+	FirstAggregation: "FIRST",
+	LastAggregation:  "LAST",
+}
+
+func (aggType AggregationType) String() string {
+	return aggToString[aggType]
+}
+
+func toAggregationType(aggType interface{}) (AggregationType, error) {
+	aggTypeStr, err := redis.String(aggType, nil)
+	if err != nil {
+		return 0, err
+	}
+	for k, v := range aggToString {
+		if v == aggTypeStr {
+			return k, nil
+		}
+	}
+	return 0, fmt.Errorf("AggregationType not found %q", aggType)
+}
+
+// TS.CREATERULE create a compaction rule
+// SOURCE_KEY - key name for source time series
+// AGG_TYPE - AggregationType
+// BUCKET_SIZE_SEC - time bucket for aggregated compaction,
+// DEST_KEY - key name for destination time series
+func (client *Client) CreateRule(sourceKey string, aggType AggregationType, bucketSizeSec uint, destinationKey string) (err error) {
+	conn := client.pool.Get()
+	defer conn.Close()
+	_, err = conn.Do("TS.CREATERULE", sourceKey, aggType.String(), bucketSizeSec, destinationKey)
+	return err
 }
