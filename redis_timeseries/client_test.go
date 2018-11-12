@@ -1,9 +1,8 @@
 package redis_timeseries
 
 import (
-	"github.com/levenlabs/golib/timeutil"
-	"github.com/stretchr/testify/assert"
 	"github.com/garyburd/redigo/redis"
+	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
 )
@@ -70,11 +69,38 @@ func TestDeleteRule(t *testing.T) {
 
 func TestAdd(t *testing.T) {
 	key := "test_ADD"
-	now := timeutil.TimestampNow()
+	now := time.Now().Unix()
 	PI := 3.14159265359
 	client.CreateKey(key, defaultDuration, defaultMaxSamplesPerChunk)
-	err := client.Add(key, now , PI)
+	err := client.Add(key, now, PI)
 	assert.Equal(t, nil, err)
 	info, _ := client.Info(key)
-	assert.Equal(t, int(now.Unix()), info.LastTimestamp)
+	assert.Equal(t, now, info.LastTimestamp)
 }
+
+func TestClient_Range(t *testing.T) {
+	key := "test_Range"
+	client.CreateKey(key, defaultDuration, defaultMaxSamplesPerChunk)
+	now := time.Now().Unix()
+	pi := 3.14159265359
+	halfPi:= pi /2
+
+	client.Add(key, now-2, halfPi)
+	client.Add(key, now, pi)
+
+
+	dataPoints, err := client.Range(key, now-1, now)
+	assert.Equal(t, nil, err)
+	expected := []DataPoint{{timestamp: now, value: pi}}
+	assert.Equal(t, expected, dataPoints)
+
+	dataPoints, err = client.Range(key, now-2, now)
+	assert.Equal(t, nil, err)
+	expected = []DataPoint{{timestamp: now-2, value: halfPi},{timestamp: now, value: pi}}
+	assert.Equal(t, expected, dataPoints)
+
+	dataPoints, err = client.Range(key, now-4, now-3)
+	assert.Equal(t, nil, err)
+	expected = []DataPoint{}
+	assert.Equal(t, expected, dataPoints)
+	}
