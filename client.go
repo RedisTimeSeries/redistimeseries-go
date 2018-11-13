@@ -1,4 +1,4 @@
-package redis_timeseries
+package redis_timeseries_go
 
 import (
 	"errors"

@@ -14,12 +14,13 @@ RUN cd redis-timeseries && \
     cd src && \
     make -j all
 
-RUN go get github.com/stretchr/testify
-COPY redis_timeseries redis_timeseries_go
-WORKDIR redis_timeseries_go
-RUN go get
+RUN curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
 
-CMD redis-server --daemonize yes --loadmodule ../redis-timeseries/src/redis-tsdb-module.so && \
+WORKDIR /go/src/github.com/RedisLabs/redis-timeseries-go
+COPY * ./
+RUN dep ensure
+
+CMD redis-server --daemonize yes --loadmodule /go/redis-timeseries/src/redis-tsdb-module.so && \
     sleep 1 && \
     go test -coverprofile=coverage.out && \
     go tool cover -func=coverage.out

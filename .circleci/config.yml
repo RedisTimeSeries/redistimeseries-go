@@ -34,15 +34,16 @@ jobs:
         cd src
         make -j all
 
+    # run redis with module
     - run: |
         redis-server --daemonize yes --loadmodule redis-timeseries/src/redis-tsdb-module.so
         sleep 1
 
-    - run: go get github.com/stretchr/testify
+    # install golang deps
+    - run: curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+    - run: dep ensure
 
-    # specify any bash command here prefixed with `run: `
+    #run tests with coverage
     - run: |
-        cd redis_timeseries
-        go get
         go test -v -coverprofile=coverage.out
         go tool cover -func=coverage.out
