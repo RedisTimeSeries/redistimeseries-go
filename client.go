@@ -220,8 +220,8 @@ func (client *Client) Add(key string, timestamp int64, value float64) (err error
 }
 
 type DataPoint struct {
-	timestamp int64
-	value     float64
+	Timestamp int64
+	Value     float64
 }
 
 func parseDataPoints(info interface{}) (dataPoints []DataPoint, err error) {
