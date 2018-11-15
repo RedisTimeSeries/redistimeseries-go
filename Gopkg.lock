@@ -10,15 +10,15 @@
   version = "v1.1.1"
 
 [[projects]]
-  digest = "1:0594af97b2f4cec6554086eeace6597e20a4b69466eb4ada25adf9f4300dddd2"
-  name = "github.com/garyburd/redigo"
+  digest = "1:38ec74012390146c45af1f92d46e5382b50531247929ff3a685d2b2be65155ac"
+  name = "github.com/gomodule/redigo"
   packages = [
     "internal",
     "redis",
   ]
   pruneopts = "UT"
-  revision = "a69d19351219b6dd56f274f96d85a7014a2ec34e"
-  version = "v1.6.0"
+  revision = "9c11da706d9b7902c6da69c592f75637793fe121"
+  version = "v2.0.0"
 
 [[projects]]
   digest = "1:0028cb19b2e4c3112225cd871870f2d9cf49b9b4276531f03438a88e94be86fe"
@@ -40,7 +40,7 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
-    "github.com/garyburd/redigo/redis",
+    "github.com/gomodule/redigo/redis",
     "github.com/stretchr/testify/assert",
   ]
   solver-name = "gps-cdcl"
