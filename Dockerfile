@@ -20,7 +20,7 @@ WORKDIR /go/src/github.com/RedisLabs/redis-timeseries-go
 COPY * ./
 RUN dep ensure
 
-CMD redis-server --daemonize yes --loadmodule /go/redis-timeseries/src/redis-tsdb-module.so && \
+CMD redis-server --daemonize yes --loadmodule /go/redis-timeseries/src/redis-tsdb-module.so --requirepass SUPERSECRET && \
     sleep 1 && \
     go test -coverprofile=coverage.out && \
     go tool cover -func=coverage.out
