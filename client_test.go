@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-var client = NewClient("localhost:6379", "test_client", "SUPERSECRET")
+var client = NewClient("localhost:6379", "test_client", MakeStringPtr("SUPERSECRET"))
 
 var defaultDuration, _ = time.ParseDuration("1h")
 var defaultMaxSamplesPerChunk uint = 360

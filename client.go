@@ -15,15 +15,20 @@ import (
 type Client struct {
 	pool ConnPool
 	name string
-	authPass string
 }
 
 var maxConns = 500
 
+// Helper function to create a string pointer from a string literal.
+// Useful for calls to NewClient with an auth pass that is known at compile time.
+func MakeStringPtr(s string) *string {
+	return &s
+}
+
 // NewClient creates a new client connecting to the redis host, and using the given name as key prefix.
 // Addr can be a single host:port pair, or a comma separated list of host:port,host:port...
 // In the case of multiple hosts we create a multi-pool and select connections at random
-func NewClient(addr, name string, authPass string) *Client {
+func NewClient(addr, name string, authPass *string) *Client {
 	addrs := strings.Split(addr, ",")
 	var pool ConnPool
 	if len(addrs) == 1 {

@@ -16,7 +16,7 @@ type SingleHostPool struct {
 	*redis.Pool
 }
 
-func NewSingleHostPool(host string, authPass string) *SingleHostPool {
+func NewSingleHostPool(host string, authPass *string) *SingleHostPool {
 	ret := &redis.Pool{
 		Dial: dialFuncWrapper(host, authPass),
 		TestOnBorrow: testOnBorrow,
@@ -30,10 +30,10 @@ type MultiHostPool struct {
 	sync.Mutex
 	pools map[string]*redis.Pool
 	hosts []string
-	authPass string
+	authPass *string
 }
 
-func NewMultiHostPool(hosts []string, authPass string) *MultiHostPool {
+func NewMultiHostPool(hosts []string, authPass *string) *MultiHostPool {
 	return &MultiHostPool{
 		pools: make(map[string]*redis.Pool, len(hosts)),
 		hosts: hosts,
@@ -60,14 +60,14 @@ func (p *MultiHostPool) Get() redis.Conn {
 	return pool.Get()
 }
 
-func dialFuncWrapper(host string, authPass string) func() (redis.Conn, error) {
+func dialFuncWrapper(host string, authPass *string) func() (redis.Conn, error) {
 	return func() (redis.Conn, error) {
 		conn, err := redis.Dial("tcp", host)
 		if err != nil {
 			return conn, err
 		}
-		if authPass != "" {
-			_, err = conn.Do("AUTH", authPass)
+		if authPass != nil {
+			_, err = conn.Do("AUTH", *authPass)
 		}
 		return conn, err
 	}
