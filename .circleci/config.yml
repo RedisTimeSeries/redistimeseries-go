@@ -36,7 +36,7 @@ jobs:
 
     # run redis with module
     - run: |
-        redis-server --daemonize yes --loadmodule redis-timeseries/src/redis-tsdb-module.so
+        redis-server --daemonize yes --loadmodule redis-timeseries/src/redis-tsdb-module.so --requirepass SUPERSECRET
         sleep 1
 
     # install golang deps

@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-var client = NewClient("localhost:6379", "test_client")
+var client = NewClient("localhost:6379", "test_client", "SUPERSECRET")
 
 var defaultDuration, _ = time.ParseDuration("1h")
 var defaultMaxSamplesPerChunk uint = 360
@@ -90,12 +90,12 @@ func TestClient_Range(t *testing.T) {
 
 	dataPoints, err := client.Range(key, now-1, now)
 	assert.Equal(t, nil, err)
-	expected := []DataPoint{{timestamp: now, value: pi}}
+	expected := []DataPoint{{Timestamp: now, Value: pi}}
 	assert.Equal(t, expected, dataPoints)
 
 	dataPoints, err = client.Range(key, now-2, now)
 	assert.Equal(t, nil, err)
-	expected = []DataPoint{{timestamp: now - 2, value: halfPi}, {timestamp: now, value: pi}}
+	expected = []DataPoint{{Timestamp: now - 2, Value: halfPi}, {Timestamp: now, Value: pi}}
 	assert.Equal(t, expected, dataPoints)
 
 	dataPoints, err = client.Range(key, now-4, now-3)
@@ -116,5 +116,5 @@ func TestClient_AggRange(t *testing.T) {
 
 	dataPoints, err := client.AggRange(key, now-60, now, CountAggregation, 10)
 	assert.Equal(t, nil, err)
-	assert.Equal(t, 2.0, dataPoints[0].value)
+	assert.Equal(t, 2.0, dataPoints[0].Value)
 }
