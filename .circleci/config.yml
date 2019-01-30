@@ -5,18 +5,18 @@ version: 2
 jobs:
   build:
     docker:
-    # specify the version
-    - image: circleci/golang:1.11
-    
-    - image: redislabs/redisgraph:edge
-      port: 6379:6379
+      # specify the version
+      - image: circleci/golang:1.11
+   
+      - image: redislabs/redisgraph:edge
+        port: 6379:6379
 
-  working_directory: /go/src/github.com/RedisLabs/redis-timeseries-go
+    working_directory: /go/src/github.com/RedisLabs/redis-timeseries-go
     steps:
-    - checkout   
-    - run: go get -v -t -d ./...
+      - checkout   
+      - run: go get -v -t -d ./...
 
-    #run tests with coverage
-    - run: |
+      #run tests with coverage
+      - run: |
         go test -v -coverprofile=coverage.out
         go tool cover -func=coverage.out
