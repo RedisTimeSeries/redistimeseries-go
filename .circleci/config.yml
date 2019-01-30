@@ -9,7 +9,7 @@ jobs:
       - image: circleci/golang:1.11
    
       - image: redislabs/redistimeseries:edge 
-        command: ['--loadmodule', '/usr/lib/redis/modules/redis-tsdb-module.so', '--requirepass', 'SUPERSECRET']
+        command: ['--requirepass', 'SUPERSECRET']
         port: 6379:6379
 
     working_directory: /go/src/github.com/RedisLabs/redis-timeseries-go
