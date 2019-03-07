@@ -221,7 +221,7 @@ func strToFloat(inputString string) (float64, error) {
 func (client *Client) Add(key string, timestamp int64, value float64) (err error) {
 	conn := client.pool.Get()
 	defer conn.Close()
-	_, err = conn.Do("TS.ADD", key, timestamp, "RETENTION", floatToStr(value))
+	_, err = conn.Do("TS.ADD", key, timestamp, floatToStr(value))
 	return err
 }
 
