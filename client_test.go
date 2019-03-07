@@ -10,10 +10,9 @@ import (
 var client = NewClient("localhost:6379", "test_client", MakeStringPtr("SUPERSECRET"))
 
 var defaultDuration, _ = time.ParseDuration("1h")
-var defaultMaxSamplesPerChunk uint = 360
 
 func TestCreateKey(t *testing.T) {
-	err := client.CreateKey("test_CreateKey", defaultDuration, defaultMaxSamplesPerChunk)
+	err := client.CreateKey("test_CreateKey", defaultDuration)
 	assert.Equal(t, nil, err)
 }
 
@@ -21,11 +20,11 @@ func TestCreateRule(t *testing.T) {
 	var destinationKey string
 	var err error
 	key := "test_CreateRule"
-	client.CreateKey(key, defaultDuration, defaultMaxSamplesPerChunk)
+	client.CreateKey(key, defaultDuration)
 	var found bool
 	for aggType, aggString := range aggToString {
 		destinationKey = "test_CreateRule_dest" + aggString
-		client.CreateKey(destinationKey, defaultDuration, defaultMaxSamplesPerChunk)
+		client.CreateKey(destinationKey, defaultDuration)
 		err = client.CreateRule(key, aggType, 100, destinationKey)
 		assert.Equal(t, nil, err)
 		info, _ := client.Info(key)
@@ -42,8 +41,8 @@ func TestCreateRule(t *testing.T) {
 func TestClientInfo(t *testing.T) {
 	key := "test_INFO"
 	destKey := "test_INFO_dest"
-	client.CreateKey(key, defaultDuration, defaultMaxSamplesPerChunk)
-	client.CreateKey(destKey, defaultDuration, defaultMaxSamplesPerChunk)
+	client.CreateKey(key, defaultDuration)
+	client.CreateKey(destKey, defaultDuration)
 	client.CreateRule(key, AvgAggregation, 100, destKey)
 	res, err := client.Info(key)
 	assert.Equal(t, nil, err)
@@ -56,8 +55,8 @@ func TestClientInfo(t *testing.T) {
 func TestDeleteRule(t *testing.T) {
 	key := "test_DELETE"
 	destKey := "test_DELETE_dest"
-	client.CreateKey(key, defaultDuration, defaultMaxSamplesPerChunk)
-	client.CreateKey(destKey, defaultDuration, defaultMaxSamplesPerChunk)
+	client.CreateKey(key, defaultDuration)
+	client.CreateKey(destKey, defaultDuration)
 	client.CreateRule(key, AvgAggregation, 100, destKey)
 	err := client.DeleteRule(key, destKey)
 	assert.Equal(t, nil, err)
@@ -71,7 +70,7 @@ func TestAdd(t *testing.T) {
 	key := "test_ADD"
 	now := time.Now().Unix()
 	PI := 3.14159265359
-	client.CreateKey(key, defaultDuration, defaultMaxSamplesPerChunk)
+	client.CreateKey(key, defaultDuration)
 	err := client.Add(key, now, PI)
 	assert.Equal(t, nil, err)
 	info, _ := client.Info(key)
@@ -80,7 +79,7 @@ func TestAdd(t *testing.T) {
 
 func TestClient_Range(t *testing.T) {
 	key := "test_Range"
-	client.CreateKey(key, defaultDuration, defaultMaxSamplesPerChunk)
+	client.CreateKey(key, defaultDuration)
 	now := time.Now().Unix()
 	pi := 3.14159265359
 	halfPi := pi / 2
@@ -106,7 +105,7 @@ func TestClient_Range(t *testing.T) {
 
 func TestClient_AggRange(t *testing.T) {
 	key := "test_aggRange"
-	client.CreateKey(key, defaultDuration, defaultMaxSamplesPerChunk)
+	client.CreateKey(key, defaultDuration)
 	now := time.Now().Unix()
 	value := 5.0
 	value2 := 6.0

@@ -51,10 +51,10 @@ func formatSec(dur time.Duration) int64 {
 }
 
 // CreateKey create a new time-series
-func (client *Client) CreateKey(key string, retentionSecs time.Duration, maxSamplesPerChunk uint) (err error) {
+func (client *Client) CreateKey(key string, retentionSecs time.Duration) (err error) {
 	conn := client.pool.Get()
 	defer conn.Close()
-	_, err = conn.Do("TS.CREATE", key, formatSec(retentionSecs), maxSamplesPerChunk)
+	_, err = conn.Do("TS.CREATE", key, "RETENTION", formatSec(retentionSecs))
 	return err
 }
 
@@ -190,7 +190,7 @@ func toAggregationType(aggType interface{}) (AggregationType, error) {
 func (client *Client) CreateRule(sourceKey string, aggType AggregationType, bucketSizeSec uint, destinationKey string) (err error) {
 	conn := client.pool.Get()
 	defer conn.Close()
-	_, err = conn.Do("TS.CREATERULE", sourceKey, aggType.String(), bucketSizeSec, destinationKey)
+	_, err = conn.Do("TS.CREATERULE", sourceKey, destinationKey, "AGGREGATION", aggType.String(), bucketSizeSec)
 	return err
 }
 
@@ -221,7 +221,7 @@ func strToFloat(inputString string) (float64, error) {
 func (client *Client) Add(key string, timestamp int64, value float64) (err error) {
 	conn := client.pool.Get()
 	defer conn.Close()
-	_, err = conn.Do("TS.ADD", key, timestamp, floatToStr(value))
+	_, err = conn.Do("TS.ADD", key, timestamp, "RETENTION", floatToStr(value))
 	return err
 }
 
@@ -271,8 +271,7 @@ func (client *Client) Range(key string, fromTimestamp int64, toTimestamp int64) 
 	err error) {
 	conn := client.pool.Get()
 	defer conn.Close()
-	info, err := conn.Do("TS.RANGE", key, strconv.FormatInt(fromTimestamp, 10),
-		strconv.FormatInt(toTimestamp, 10))
+	info, err := conn.Do("TS.RANGE", key, strconv.FormatInt(fromTimestamp, 10), strconv.FormatInt(toTimestamp, 10))
 	if err != nil {
 		return nil, err
 	}
@@ -291,8 +290,8 @@ func (client *Client) AggRange(key string, fromTimestamp int64, toTimestamp int6
 	bucketSizeSec int) (dataPoints []DataPoint, err error) {
 	conn := client.pool.Get()
 	defer conn.Close()
-	info, err := conn.Do("TS.RANGE", key, strconv.FormatInt(fromTimestamp, 10),
-		strconv.FormatInt(toTimestamp, 10), aggType.String(), bucketSizeSec)
+	info, err := conn.Do("TS.RANGE", key, strconv.FormatInt(fromTimestamp, 10), strconv.FormatInt(toTimestamp, 10), 
+		"AGGREGATION", aggType.String(), bucketSizeSec)
 	if err != nil {
 		return nil, err
 	}
