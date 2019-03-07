@@ -21,3 +21,19 @@ jobs:
       - run: go test -v -race -coverprofile=coverage.txt -covermode=atomic
       - run: go tool cover -func=coverage.txt
       - run: bash <(curl -s https://codecov.io/bash) -t ${CODECOV_TOKEN}
+
+workflows:
+  version: 2
+  commit:
+    jobs:
+      - build
+  nightly:
+    triggers:
+      - schedule:
+          cron: "0 0 * * *"
+          filters:
+            branches:
+              only:
+                - master
+    jobs:
+      - build
