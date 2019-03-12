@@ -13,8 +13,8 @@ import (
 
 // Client is an interface to time series redis commands
 type Client struct {
-	pool ConnPool
-	name string
+	Pool ConnPool
+	Name string
 }
 
 var maxConns = 500
@@ -37,8 +37,8 @@ func NewClient(addr, name string, authPass *string) *Client {
 		pool = NewMultiHostPool(addrs, authPass)
 	}
 	ret := &Client{
-		pool: pool,
-		name: name,
+		Pool: pool,
+		Name: name,
 	}
 	return ret
 }
@@ -52,7 +52,7 @@ func formatSec(dur time.Duration) int64 {
 
 // CreateKey create a new time-series
 func (client *Client) CreateKey(key string, retentionSecs time.Duration) (err error) {
-	conn := client.pool.Get()
+	conn := client.Pool.Get()
 	defer conn.Close()
 	_, err = conn.Do("TS.CREATE", key, "RETENTION", formatSec(retentionSecs))
 	return err
@@ -136,7 +136,7 @@ func ParseInfo(result interface{}, err error) (info KeyInfo, outErr error) {
 
 // Info create a new time-series
 func (client *Client) Info(key string) (res KeyInfo, err error) {
-	conn := client.pool.Get()
+	conn := client.Pool.Get()
 	defer conn.Close()
 	res, err = ParseInfo(conn.Do("TS.INFO", key))
 	return res, err
@@ -188,7 +188,7 @@ func toAggregationType(aggType interface{}) (AggregationType, error) {
 // BUCKET_SIZE_SEC - time bucket for aggregated compaction,
 // DEST_KEY - key name for destination time series
 func (client *Client) CreateRule(sourceKey string, aggType AggregationType, bucketSizeSec uint, destinationKey string) (err error) {
-	conn := client.pool.Get()
+	conn := client.Pool.Get()
 	defer conn.Close()
 	_, err = conn.Do("TS.CREATERULE", sourceKey, destinationKey, "AGGREGATION", aggType.String(), bucketSizeSec)
 	return err
@@ -199,7 +199,7 @@ func (client *Client) CreateRule(sourceKey string, aggType AggregationType, buck
 // SOURCE_KEY - key name for source time series
 // DEST_KEY - key name for destination time series
 func (client *Client) DeleteRule(sourceKey string, destinationKey string) (err error) {
-	conn := client.pool.Get()
+	conn := client.Pool.Get()
 	defer conn.Close()
 	_, err = conn.Do("TS.DELETERULE", sourceKey, destinationKey)
 	return err
@@ -219,7 +219,7 @@ func strToFloat(inputString string) (float64, error) {
 // timestamp - time of value
 // value - value
 func (client *Client) Add(key string, timestamp int64, value float64) (err error) {
-	conn := client.pool.Get()
+	conn := client.Pool.Get()
 	defer conn.Close()
 	_, err = conn.Do("TS.ADD", key, timestamp, floatToStr(value))
 	return err
@@ -269,7 +269,7 @@ func parseDataPoints(info interface{}) (dataPoints []DataPoint, err error) {
 // toTimestamp - end of range
 func (client *Client) Range(key string, fromTimestamp int64, toTimestamp int64) (dataPoints []DataPoint,
 	err error) {
-	conn := client.pool.Get()
+	conn := client.Pool.Get()
 	defer conn.Close()
 	info, err := conn.Do("TS.RANGE", key, strconv.FormatInt(fromTimestamp, 10), strconv.FormatInt(toTimestamp, 10))
 	if err != nil {
@@ -288,7 +288,7 @@ func (client *Client) Range(key string, fromTimestamp int64, toTimestamp int64) 
 // bucketSizeSec - time bucket for aggregation
 func (client *Client) AggRange(key string, fromTimestamp int64, toTimestamp int64, aggType AggregationType,
 	bucketSizeSec int) (dataPoints []DataPoint, err error) {
-	conn := client.pool.Get()
+	conn := client.Pool.Get()
 	defer conn.Close()
 	info, err := conn.Do("TS.RANGE", key, strconv.FormatInt(fromTimestamp, 10), strconv.FormatInt(toTimestamp, 10), 
 		"AGGREGATION", aggType.String(), bucketSizeSec)
