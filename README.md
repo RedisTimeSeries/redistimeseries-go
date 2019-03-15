@@ -10,3 +10,18 @@
 Go client for RedisTimeSeries (https://github.com/RedisLabsModules/redis-timeseries)
 
 Client and ConnPool based on the work of dvirsky and mnunberg on https://github.com/RediSearch/redisearch-go
+
+
+## Running tests
+
+A simple test suite is provided, and can be run with:
+
+```sh
+$ go test
+```
+
+The tests expect a Redis server with the RedisTimeSeries module loaded to be available at localhost:6379
+
+## License
+
+redistimeseries-go is distributed under the Apache-2 license - see [LICENSE](LICENSE)
