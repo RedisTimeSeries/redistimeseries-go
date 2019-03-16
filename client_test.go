@@ -13,10 +13,18 @@ var defaultDuration, _ = time.ParseDuration("1h")
 var tooShortDuration, _ = time.ParseDuration("10ms")
 
 func TestCreateKey(t *testing.T) {
-	err := client.CreateKey("test_CreateKey", defaultDuration)
+	err := client.CreateKey("test_CreateKey", defaultDuration, nil)
 	assert.Equal(t, nil, err)
 	
-	err = client.CreateKey("test_CreateKey", tooShortDuration)
+	labels := map[string]string{
+	        "cpu": "cpu1",
+	        "country": "IT",
+	}
+	err = client.CreateKey("test_CreateKeyLabels", defaultDuration, labels)
+		
+	assert.Equal(t, nil, err)
+	
+	err = client.CreateKey("test_CreateKey", tooShortDuration, nil)
 	assert.NotNil(t, err)
 }
 
@@ -24,11 +32,11 @@ func TestCreateRule(t *testing.T) {
 	var destinationKey string
 	var err error
 	key := "test_CreateRule"
-	client.CreateKey(key, defaultDuration)
+	client.CreateKey(key, defaultDuration, nil)
 	var found bool
 	for aggType, aggString := range aggToString {
 		destinationKey = "test_CreateRule_dest" + aggString
-		client.CreateKey(destinationKey, defaultDuration)
+		client.CreateKey(destinationKey, defaultDuration, nil)
 		err = client.CreateRule(key, aggType, 100, destinationKey)
 		assert.Equal(t, nil, err)
 		info, _ := client.Info(key)
@@ -45,8 +53,8 @@ func TestCreateRule(t *testing.T) {
 func TestClientInfo(t *testing.T) {
 	key := "test_INFO"
 	destKey := "test_INFO_dest"
-	client.CreateKey(key, defaultDuration)
-	client.CreateKey(destKey, defaultDuration)
+	client.CreateKey(key, defaultDuration, nil)
+	client.CreateKey(destKey, defaultDuration, nil)
 	client.CreateRule(key, AvgAggregation, 100, destKey)
 	res, err := client.Info(key)
 	assert.Equal(t, nil, err)
@@ -59,8 +67,8 @@ func TestClientInfo(t *testing.T) {
 func TestDeleteRule(t *testing.T) {
 	key := "test_DELETE"
 	destKey := "test_DELETE_dest"
-	client.CreateKey(key, defaultDuration)
-	client.CreateKey(destKey, defaultDuration)
+	client.CreateKey(key, defaultDuration, nil)
+	client.CreateKey(destKey, defaultDuration, nil)
 	client.CreateRule(key, AvgAggregation, 100, destKey)
 	err := client.DeleteRule(key, destKey)
 	assert.Equal(t, nil, err)
@@ -74,7 +82,7 @@ func TestAdd(t *testing.T) {
 	key := "test_ADD"
 	now := time.Now().Unix()
 	PI := 3.14159265359
-	client.CreateKey(key, defaultDuration)
+	client.CreateKey(key, defaultDuration, nil)
 	err := client.Add(key, now, PI)
 	assert.Equal(t, nil, err)
 	info, _ := client.Info(key)
@@ -83,7 +91,7 @@ func TestAdd(t *testing.T) {
 
 func TestClient_Range(t *testing.T) {
 	key := "test_Range"
-	client.CreateKey(key, defaultDuration)
+	client.CreateKey(key, defaultDuration, nil)
 	now := time.Now().Unix()
 	pi := 3.14159265359
 	halfPi := pi / 2
@@ -112,7 +120,7 @@ func TestClient_Range(t *testing.T) {
 
 func TestClient_AggRange(t *testing.T) {
 	key := "test_aggRange"
-	client.CreateKey(key, defaultDuration)
+	client.CreateKey(key, defaultDuration, nil)
 	now := time.Now().Unix()
 	value := 5.0
 	value2 := 6.0
@@ -125,6 +133,34 @@ func TestClient_AggRange(t *testing.T) {
 	assert.Equal(t, 2.0, dataPoints[0].Value)
 	
 	_, err = client.AggRange(key+"1", now-60, now, CountAggregation, 10)
+	assert.NotNil(t, err)
+}
+
+func TestClient_AggMultiRange(t *testing.T) {
+	key := "test_aggMultiRange1"
+	labels := map[string]string{
+	        "cpu": "cpu1",
+	        "country": "US",
+	}
+	client.CreateKey(key, defaultDuration, labels)
+	now := time.Now().Unix()
+	client.Add(key, now-2, 5.0)
+	client.Add(key, now-1, 6.0)
+	
+	key2 := "test_aggMultiRange2"
+	labels2 := map[string]string{
+	        "cpu": "cpu2",
+	        "country": "US",
+	}
+	client.CreateKey(key2, defaultDuration, labels2)
+	client.Add(key, now-2, 4.0)
+	client.Add(key, now-1, 8.0)
+
+	dataPoints, err := client.AggMultiRange(now-60, now, CountAggregation, 10, []string{"country=US"})
+	assert.Equal(t, nil, err)
+	assert.Equal(t, 2.0, dataPoints[0].Value)
+	
+	_, err = client.AggMultiRange(now-60, now, CountAggregation, 10, nil)
 	assert.NotNil(t, err)
 
 }

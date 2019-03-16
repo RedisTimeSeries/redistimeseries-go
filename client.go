@@ -51,10 +51,20 @@ func formatSec(dur time.Duration) int64 {
 }
 
 // CreateKey create a new time-series
-func (client *Client) CreateKey(key string, retentionSecs time.Duration) (err error) {
+func (client *Client) CreateKey(key string, retentionSecs time.Duration, labels map[string]string) (err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
-	_, err = conn.Do("TS.CREATE", key, "RETENTION", formatSec(retentionSecs))
+	
+	args := []interface{}{key, "RETENTION", formatSec(retentionSecs)}
+	if labels != nil {
+		args = append(args, "LABELS")
+		for key, value := range labels {
+	        args = append(args, key)
+	        args = append(args, value)
+	    }
+	}
+
+	_, err = conn.Do("TS.CREATE", args...)
 	return err
 }
 
@@ -292,6 +302,32 @@ func (client *Client) AggRange(key string, fromTimestamp int64, toTimestamp int6
 	defer conn.Close()
 	info, err := conn.Do("TS.RANGE", key, strconv.FormatInt(fromTimestamp, 10), strconv.FormatInt(toTimestamp, 10), 
 		"AGGREGATION", aggType.String(), bucketSizeSec)
+	if err != nil {
+		return nil, err
+	}
+	dataPoints, err = parseDataPoints(info)
+	return dataPoints, err
+}
+	
+	// AggRange - aggregation over a ranged query
+// args:
+// fromTimestamp - start of range
+// toTimestamp - end of range
+// aggType - aggregation type
+// bucketSizeSec - time bucket for aggregation
+func (client *Client) AggMultiRange(fromTimestamp int64, toTimestamp int64, aggType AggregationType,
+	bucketSizeSec int, filters []string) (dataPoints []DataPoint, err error) {
+	conn := client.Pool.Get()
+	defer conn.Close()
+	
+	args := []interface{}{strconv.FormatInt(fromTimestamp, 10), strconv.FormatInt(toTimestamp, 10), 
+		"AGGREGATION", aggType.String(), bucketSizeSec, "FILTER"}
+
+	for _, filter := range filters{
+		args = append(args, filter) 
+	}
+	
+	info, err := conn.Do("TS.MRANGE", args...)
 	if err != nil {
 		return nil, err
 	}
