@@ -316,7 +316,7 @@ func (client *Client) AggRange(key string, fromTimestamp int64, toTimestamp int6
 // aggType - aggregation type
 // bucketSizeSec - time bucket for aggregation
 func (client *Client) AggMultiRange(fromTimestamp int64, toTimestamp int64, aggType AggregationType,
-	bucketSizeSec int, filters []string) (dataPoints []DataPoint, err error) {
+	bucketSizeSec int, filters ...string) (dataPoints []DataPoint, err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
 	
