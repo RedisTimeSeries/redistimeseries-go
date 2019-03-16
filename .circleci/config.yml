@@ -8,7 +8,7 @@ jobs:
       # specify the version
       - image: circleci/golang:1.11
    
-      - image: redislabs/redistimeseries:edge 
+      - image: redislabs/redistimeseries:latest 
         command: ['--loadmodule', '/usr/lib/redis/modules/redistimeseries.so', '--requirepass', 'SUPERSECRET']
         port: 6379:6379
 
