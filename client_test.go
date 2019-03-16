@@ -10,10 +10,14 @@ import (
 var client = NewClient("localhost:6379", "test_client", MakeStringPtr("SUPERSECRET"))
 
 var defaultDuration, _ = time.ParseDuration("1h")
+var tooShortDuration, _ = time.ParseDuration("10ms")
 
 func TestCreateKey(t *testing.T) {
 	err := client.CreateKey("test_CreateKey", defaultDuration)
 	assert.Equal(t, nil, err)
+	
+	err = client.CreateKey("test_CreateKey", tooShortDuration)
+	assert.NotNil(t, err)
 }
 
 func TestCreateRule(t *testing.T) {
@@ -101,6 +105,9 @@ func TestClient_Range(t *testing.T) {
 	assert.Equal(t, nil, err)
 	expected = []DataPoint{}
 	assert.Equal(t, expected, dataPoints)
+	
+	_, err = client.Range(key + "1", now-1, now)
+	assert.NotNil(t, err)
 }
 
 func TestClient_AggRange(t *testing.T) {
@@ -116,4 +123,8 @@ func TestClient_AggRange(t *testing.T) {
 	dataPoints, err := client.AggRange(key, now-60, now, CountAggregation, 10)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 2.0, dataPoints[0].Value)
+	
+	_, err = client.AggRange(key+"1", now-60, now, CountAggregation, 10)
+	assert.NotNil(t, err)
+
 }
