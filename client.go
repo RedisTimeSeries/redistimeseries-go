@@ -7,9 +7,29 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
 	"github.com/gomodule/redigo/redis"
 )
+
+type CreateOptions struct {
+	RetentionSecs time.Duration
+	Labels map[string]string
+}
+
+// Append options to args
+func (options *CreateOptions) Append(args []interface{}) (result []interface{}) {
+	if options.RetentionSecs >= 0 {
+		args = append(args, "RETENTION", formatSec(options.RetentionSecs))			
+	}		
+	if len(options.Labels) > 0 {
+		args = append(args, "LABELS")
+		for key, value := range options.Labels {
+	        args = append(args, key)
+	        args = append(args, value)
+	    }
+	}
+	return args
+}
+
 
 // Client is an interface to time series redis commands
 type Client struct {
@@ -51,18 +71,12 @@ func formatSec(dur time.Duration) int64 {
 }
 
 // CreateKey create a new time-series
-func (client *Client) CreateKey(key string, retentionSecs time.Duration, labels map[string]string) (err error) {
+func (client *Client) CreateKey(key string, options CreateOptions) (err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
 	
-	args := []interface{}{key, "RETENTION", formatSec(retentionSecs)}
-	if labels != nil {
-		args = append(args, "LABELS")
-		for key, value := range labels {
-	        args = append(args, key)
-	        args = append(args, value)
-	    }
-	}
+	args := []interface{}{key}
+	args = options.Append(args)
 
 	_, err = conn.Do("TS.CREATE", args...)
 	return err
@@ -228,10 +242,14 @@ func strToFloat(inputString string) (float64, error) {
 // key - time series key name
 // timestamp - time of value
 // value - value
-func (client *Client) Add(key string, timestamp int64, value float64) (err error) {
+// options - define options for create key on add 
+func (client *Client) Add(key string, timestamp int64, value float64, options CreateOptions) (err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
-	_, err = conn.Do("TS.ADD", key, timestamp, floatToStr(value))
+	
+	args := []interface{}{key, timestamp, floatToStr(value)}
+	args = options.Append(args)
+	_, err = conn.Do("TS.ADD", args...)
 	return err
 }
 
@@ -315,6 +333,7 @@ func (client *Client) AggRange(key string, fromTimestamp int64, toTimestamp int6
 // toTimestamp - end of range
 // aggType - aggregation type
 // bucketSizeSec - time bucket for aggregation
+// filters - list of filters e.g. "a=bb", b!=aa"
 func (client *Client) AggMultiRange(fromTimestamp int64, toTimestamp int64, aggType AggregationType,
 	bucketSizeSec int, filters ...string) (dataPoints []DataPoint, err error) {
 	conn := client.Pool.Get()
