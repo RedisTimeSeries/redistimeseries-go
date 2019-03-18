@@ -121,7 +121,7 @@ func TestClient_Range(t *testing.T) {
 func TestClient_AggRange(t *testing.T) {
 	key := "test_aggRange"
 	client.CreateKey(key, CreateOptions{RetentionSecs: defaultDuration})
-	now := time.Now().Unix()
+	now := int64(1552839965)
 	value := 5.0
 	value2 := 6.0
 
