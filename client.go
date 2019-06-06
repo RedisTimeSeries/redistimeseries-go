@@ -218,11 +218,10 @@ func strToFloat(inputString string) (float64, error) {
 // key - time series key name
 // timestamp - time of value
 // value - value
-func (client *Client) Add(key string, timestamp int64, value float64) (err error) {
+func (client *Client) Add(key string, timestamp int64, value float64) (timestamp int64, err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
-	_, err = conn.Do("TS.ADD", key, timestamp, floatToStr(value))
-	return err
+	return conn.Do("TS.ADD", key, timestamp, floatToStr(value))
 }
 
 type DataPoint struct {
