@@ -221,7 +221,8 @@ func strToFloat(inputString string) (float64, error) {
 func (client *Client) Add(key string, timestamp int64, value float64) (timestamp int64, err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
-	return conn.Do("TS.ADD", key, timestamp, floatToStr(value))
+	res, err = conn.Do("TS.ADD", key, timestamp, floatToStr(value))
+	return redis.Int(res), err
 }
 
 type DataPoint struct {
