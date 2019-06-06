@@ -75,9 +75,9 @@ func TestAdd(t *testing.T) {
 	now := time.Now().Unix()
 	PI := 3.14159265359
 	client.CreateKey(key, defaultDuration)
-	timestamp, err := client.Add(key, now, PI)
+	storedTimestamp, err := client.Add(key, now, PI)
 	assert.Equal(t, nil, err)
-	assert.Equal(t, now, timestamp)
+	assert.Equal(t, now, storedTimestamp)
 	info, _ := client.Info(key)
 	assert.Equal(t, now, info.LastTimestamp)
 }

@@ -218,7 +218,7 @@ func strToFloat(inputString string) (float64, error) {
 // key - time series key name
 // timestamp - time of value
 // value - value
-func (client *Client) Add(key string, timestamp int64, value float64) (timestamp int64, err error) {
+func (client *Client) Add(key string, timestamp int64, value float64) (storedTimestamp int64, err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
 	return redis.Int64( conn.Do("TS.ADD", key, timestamp, floatToStr(value)))
