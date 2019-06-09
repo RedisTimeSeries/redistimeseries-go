@@ -22,6 +22,35 @@ $ go test
 
 The tests expect a Redis server with the RedisTimeSeries module loaded to be available at localhost:6379
 
+## Example Code
+
+```
+import (
+        "fmt"
+        "github.com/RedisTimeSeries/redistimeseries-go"
+        "time"
+)
+
+func main() {
+	// Connect to localhost with no password
+        var client = redis_timeseries_go.NewClient("localhost:6379", "nohelp", nil)
+        var duration, _ = time.ParseDuration("1m")
+        var keyname = "mytest"
+        _, havit := client.Info(keyname)
+        if havit != nil {
+                client.CreateKey(keyname, duration)
+                client.CreateKey(keyname+"_avg", 0)
+                client.CreateRule(keyname, redis_timeseries_go.AvgAggregation, 60, keyname+"_avg")
+        }
+        now := time.Now().Unix()
+        err := client.Add(keyname, now, 100)
+        if err != nil {
+                fmt.Println("Error:", err)
+        }
+
+}
+```
+
 ## License
 
 redistimeseries-go is distributed under the Apache-2 license - see [LICENSE](LICENSE)
