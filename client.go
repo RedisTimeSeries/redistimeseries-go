@@ -68,7 +68,7 @@ type KeyInfo struct {
 	ChunkCount         int64
 	MaxSamplesPerChunk int64
 	LastTimestamp      int64
-	RetentionSecs      int64
+	RetentionTime      int64
 	Rules              []Rule
 }
 
