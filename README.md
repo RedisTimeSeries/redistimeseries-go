@@ -42,7 +42,7 @@ func main() {
                 client.CreateKey(keyname+"_avg", 0)
                 client.CreateRule(keyname, redis_timeseries_go.AvgAggregation, 60, keyname+"_avg")
         }
-        now := time.Now().Unix()
+        now :=  time.Now().UnixNano() / 1e6 // now in ms
         err := client.Add(keyname, now, 100)
         if err != nil {
                 fmt.Println("Error:", err)
