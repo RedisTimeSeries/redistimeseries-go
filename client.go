@@ -51,10 +51,10 @@ func formatSec(dur time.Duration) int64 {
 }
 
 // CreateKey create a new time-series
-func (client *Client) CreateKey(key string, retentionSecs time.Duration) (err error) {
+func (client *Client) CreateKey(key string, retentionTime time.Duration) (err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
-	_, err = conn.Do("TS.CREATE", key, "RETENTION", formatSec(retentionSecs))
+	_, err = conn.Do("TS.CREATE", key, "RETENTION", formatSec(retentionTime))
 	return err
 }
 
@@ -117,8 +117,8 @@ func ParseInfo(result interface{}, err error) (info KeyInfo, outErr error) {
 		switch key {
 		case "rules":
 			info.Rules, err = ParseRules(values[i+1], nil)
-		case "retentionSecs":
-			info.RetentionSecs, err = redis.Int64(values[i+1], nil)
+		case "retentionTime":
+			info.RetentionTime, err = redis.Int64(values[i+1], nil)
 		case "chunkCount":
 			info.ChunkCount, err = redis.Int64(values[i+1], nil)
 		case "maxSamplesPerChunk":
