@@ -51,10 +51,10 @@ func formatSec(dur time.Duration) int64 {
 }
 
 // CreateKey create a new time-series
-func (client *Client) CreateKey(key string, retentionSecs time.Duration) (err error) {
+func (client *Client) CreateKey(key string, retentionTime time.Duration) (err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
-	_, err = conn.Do("TS.CREATE", key, "RETENTION", formatSec(retentionSecs))
+	_, err = conn.Do("TS.CREATE", key, "RETENTION", formatSec(retentionTime))
 	return err
 }
 
@@ -68,7 +68,7 @@ type KeyInfo struct {
 	ChunkCount         int64
 	MaxSamplesPerChunk int64
 	LastTimestamp      int64
-	RetentionSecs      int64
+	RetentionTime      int64
 	Rules              []Rule
 }
 
@@ -117,8 +117,8 @@ func ParseInfo(result interface{}, err error) (info KeyInfo, outErr error) {
 		switch key {
 		case "rules":
 			info.Rules, err = ParseRules(values[i+1], nil)
-		case "retentionSecs":
-			info.RetentionSecs, err = redis.Int64(values[i+1], nil)
+		case "retentionTime":
+			info.RetentionTime, err = redis.Int64(values[i+1], nil)
 		case "chunkCount":
 			info.ChunkCount, err = redis.Int64(values[i+1], nil)
 		case "maxSamplesPerChunk":
@@ -218,11 +218,10 @@ func strToFloat(inputString string) (float64, error) {
 // key - time series key name
 // timestamp - time of value
 // value - value
-func (client *Client) Add(key string, timestamp int64, value float64) (err error) {
+func (client *Client) Add(key string, timestamp int64, value float64) (storedTimestamp int64, err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
-	_, err = conn.Do("TS.ADD", key, timestamp, floatToStr(value))
-	return err
+	return redis.Int64( conn.Do("TS.ADD", key, timestamp, floatToStr(value)))
 }
 
 // addwithduration - append a new value to the series with a duration
