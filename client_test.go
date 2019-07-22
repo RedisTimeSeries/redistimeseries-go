@@ -96,8 +96,8 @@ func TestClient_Range(t *testing.T) {
 	pi := 3.14159265359
 	halfPi := pi / 2
 
-	client.Add(key, now-2, halfPi, CreateOptions{})
-	client.Add(key, now, pi, CreateOptions{})
+	client.Add(key, now-2, halfPi)
+	client.Add(key, now, pi)
 
 	dataPoints, err := client.Range(key, now-1, now)
 	assert.Equal(t, nil, err)
@@ -125,8 +125,8 @@ func TestClient_AggRange(t *testing.T) {
 	value := 5.0
 	value2 := 6.0
 
-	client.Add(key, now-2, value, CreateOptions{})
-	client.Add(key, now-1, value2, CreateOptions{})
+	client.Add(key, now-2, value)
+	client.Add(key, now-1, value2)
 
 	dataPoints, err := client.AggRange(key, now-60, now, CountAggregation, 10)
 	assert.Equal(t, nil, err)
@@ -142,10 +142,9 @@ func TestClient_AggMultiRange(t *testing.T) {
 	        "cpu": "cpu1",
 	        "country": "US",
 	}
-	client.CreateKeyWithOptions(key, CreateOptions{RetentionSecs: defaultDuration, Labels: labels})
 	now := time.Now().Unix()
-	client.Add(key, now-2, 5.0, CreateOptions{})
-	client.Add(key, now-1, 6.0, CreateOptions{})
+	client.AddWithOptions(key, now-2, 5.0, CreateOptions{RetentionSecs: defaultDuration, Labels: labels})
+	client.AddWithOptions(key, now-1, 6.0, CreateOptions{RetentionSecs: defaultDuration, Labels: labels})
 	
 	key2 := "test_aggMultiRange2"
 	labels2 := map[string]string{
@@ -153,8 +152,8 @@ func TestClient_AggMultiRange(t *testing.T) {
 	        "country": "US",
 	}
 	client.CreateKeyWithOptions(key2, CreateOptions{RetentionSecs: defaultDuration, Labels: labels2})
-	client.Add(key, now-2, 4.0, CreateOptions{})
-	client.Add(key, now-1, 8.0, CreateOptions{})
+	client.AddWithOptions(key, now-2, 4.0, CreateOptions{})
+	client.Add(key, now-1, 8.0)
 
 	dataPoints, err := client.AggMultiRange(now-60, now, CountAggregation, 10, "country=US")
 	assert.Equal(t, nil, err)
