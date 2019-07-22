@@ -155,9 +155,10 @@ func TestClient_AggMultiRange(t *testing.T) {
 	client.AddWithOptions(key, now-2, 4.0, CreateOptions{})
 	client.Add(key, now-1, 8.0)
 
-	dataPoints, err := client.AggMultiRange(now-60, now, CountAggregation, 10, "country=US")
+	ranges, err := client.AggMultiRange(now-60, now, CountAggregation, 10, "country=US")
 	assert.Equal(t, nil, err)
-	assert.Equal(t, 2.0, dataPoints[0].Value)
+	assert.Equal(t, 2, len(ranges))
+	assert.Equal(t, 2.0, ranges[0].DataPoints[0].Value)
 	
 	_, err = client.AggMultiRange(now-60, now, CountAggregation, 10)
 	assert.NotNil(t, err)

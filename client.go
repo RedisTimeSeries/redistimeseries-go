@@ -303,6 +303,43 @@ func parseDataPoints(info interface{}) (dataPoints []DataPoint, err error) {
 	return dataPoints, nil
 }
 
+type Range struct {
+	Name       string
+	Labels     map[string]string
+	DataPoints []DataPoint
+}
+
+func parseRanges(info interface{}) (ranges []Range, err error) {
+	values, err := redis.Values(info, err)
+	if err != nil {
+		return nil, err
+	}
+	if len(values) == 0 {
+		return []Range{}, nil
+	}
+	
+	for _, i := range values {
+		iValues, err := redis.Values(i, err)
+		if err != nil {
+			return nil, err
+		}		
+		
+		name, err := redis.String(iValues[0], nil)
+		if err != nil {
+			return nil, err
+		}
+		
+		dataPoints, err := parseDataPoints(iValues[2])
+		if err != nil {
+			return nil, err
+		}
+		r := Range{ name, nil, dataPoints}
+		ranges = append(ranges, r)
+	}
+	return ranges, nil
+}
+
+
 // range - ranged query
 // args:
 // key - time series key name
@@ -348,7 +385,7 @@ func (client *Client) AggRange(key string, fromTimestamp int64, toTimestamp int6
 // bucketSizeSec - time bucket for aggregation
 // filters - list of filters e.g. "a=bb", b!=aa"
 func (client *Client) AggMultiRange(fromTimestamp int64, toTimestamp int64, aggType AggregationType,
-	bucketSizeSec int, filters ...string) (dataPoints []DataPoint, err error) {
+	bucketSizeSec int, filters ...string) (ranges []Range, err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
 	
@@ -363,6 +400,6 @@ func (client *Client) AggMultiRange(fromTimestamp int64, toTimestamp int64, aggT
 	if err != nil {
 		return nil, err
 	}
-	dataPoints, err = parseDataPoints(info)
-	return dataPoints, err
+	ranges, err = parseRanges(info)
+	return ranges, err
 }
