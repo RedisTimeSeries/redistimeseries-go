@@ -12,7 +12,7 @@ jobs:
         command: ['--loadmodule', '/usr/lib/redis/modules/redistimeseries.so', '--requirepass', 'SUPERSECRET']
         port: 6379:6379
 
-    working_directory: /go/src/github.com/RedisLabs/redis-timeseries-go
+    working_directory: /go/src/github.com/RedisTimeSeries/redistimeseries-go
     steps:
       - checkout   
       - run: go get -v -t -d ./...

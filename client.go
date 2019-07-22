@@ -40,7 +40,7 @@ type Client struct {
 var maxConns = 500
 
 // Helper function to create a string pointer from a string literal.
-// Useful for calls to NewClient with an auth pass that is known at compile time.
+// Useful for calls to NewClien an auth pass that is known at compile time.
 func MakeStringPtr(s string) *string {
 	return &s
 }
@@ -71,7 +71,14 @@ func formatSec(dur time.Duration) int64 {
 }
 
 // CreateKey create a new time-series
-func (client *Client) CreateKey(key string, options CreateOptions) (err error) {
+func (client *Client) CreateKey(key string, retentionTime time.Duration) (err error) {
+	conn := client.Pool.Get()
+	defer conn.Close()
+	_, err = conn.Do("TS.CREATE", key, "RETENTION", formatSec(retentionTime))
+	return err
+}
+
+func (client *Client) CreateKeyWithOptions(key string, options CreateOptions) (err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
 	
@@ -79,7 +86,7 @@ func (client *Client) CreateKey(key string, options CreateOptions) (err error) {
 	args = options.Append(args)
 
 	_, err = conn.Do("TS.CREATE", args...)
-	return err
+	return err  
 }
 
 type Rule struct {
@@ -92,7 +99,7 @@ type KeyInfo struct {
 	ChunkCount         int64
 	MaxSamplesPerChunk int64
 	LastTimestamp      int64
-	RetentionSecs      int64
+	RetentionTime      int64
 	Rules              []Rule
 }
 
@@ -141,8 +148,8 @@ func ParseInfo(result interface{}, err error) (info KeyInfo, outErr error) {
 		switch key {
 		case "rules":
 			info.Rules, err = ParseRules(values[i+1], nil)
-		case "retentionSecs":
-			info.RetentionSecs, err = redis.Int64(values[i+1], nil)
+		case "retentionTime":
+			info.RetentionTime, err = redis.Int64(values[i+1], nil)
 		case "chunkCount":
 			info.ChunkCount, err = redis.Int64(values[i+1], nil)
 		case "maxSamplesPerChunk":
@@ -243,7 +250,7 @@ func strToFloat(inputString string) (float64, error) {
 // timestamp - time of value
 // value - value
 // options - define options for create key on add 
-func (client *Client) Add(key string, timestamp int64, value float64, options CreateOptions) (err error) {
+func (client *Client) AddWithOptions(key string, timestamp int64, value float64, options CreateOptions) (err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
 	
@@ -251,6 +258,12 @@ func (client *Client) Add(key string, timestamp int64, value float64, options Cr
 	args = options.Append(args)
 	_, err = conn.Do("TS.ADD", args...)
 	return err
+}
+
+func (client *Client) Add(key string, timestamp int64, value float64) (storedTimestamp int64, err error) {
+	conn := client.Pool.Get()
+	defer conn.Close()
+	return redis.Int64( conn.Do("TS.ADD", key, timestamp, floatToStr(value)))
 }
 
 type DataPoint struct {

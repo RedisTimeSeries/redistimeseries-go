@@ -59,7 +59,7 @@ func TestClientInfo(t *testing.T) {
 	res, err := client.Info(key)
 	assert.Equal(t, nil, err)
 	expected := KeyInfo{ChunkCount: 1,
-		MaxSamplesPerChunk: 360, LastTimestamp: 0, RetentionSecs: 3600,
+		MaxSamplesPerChunk: 360, LastTimestamp: 0, RetentionTime: 3600,
 		Rules: []Rule{{DestKey: destKey, BucketSizeSec: 100, AggType: AvgAggregation}}}
 	assert.Equal(t, expected, res)
 }
@@ -82,9 +82,10 @@ func TestAdd(t *testing.T) {
 	key := "test_ADD"
 	now := time.Now().Unix()
 	PI := 3.14159265359
-	client.CreateKey(key, CreateOptions{RetentionSecs: defaultDuration})
-	err := client.Add(key, now, PI, CreateOptions{})
+	client.CreateKey(key, defaultDuration)
+	storedTimestamp, err := client.Add(key, now, PI)
 	assert.Equal(t, nil, err)
+	assert.Equal(t, now, storedTimestamp)
 	info, _ := client.Info(key)
 	assert.Equal(t, now, info.LastTimestamp)
 }
