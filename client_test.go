@@ -13,18 +13,17 @@ var defaultDuration, _ = time.ParseDuration("1h")
 var tooShortDuration, _ = time.ParseDuration("10ms")
 
 func TestCreateKey(t *testing.T) {
-	err := client.CreateKey("test_CreateKey", CreateOptions{RetentionSecs: defaultDuration})
+	err := client.CreateKey("test_CreateKey", defaultDuration)
 	assert.Equal(t, nil, err)
 	
 	labels := map[string]string{
 	        "cpu": "cpu1",
 	        "country": "IT",
 	}
-	err = client.CreateKey("test_CreateKeyLabels", CreateOptions{RetentionSecs: defaultDuration, Labels: labels})
-		
+	err = client.CreateKeyWithOptions("test_CreateKeyLabels", CreateOptions{RetentionSecs: defaultDuration, Labels: labels})
 	assert.Equal(t, nil, err)
 	
-	err = client.CreateKey("test_CreateKey", CreateOptions{RetentionSecs: tooShortDuration})
+	err = client.CreateKey("test_CreateKey", tooShortDuration)
 	assert.NotNil(t, err)
 }
 
@@ -32,11 +31,11 @@ func TestCreateRule(t *testing.T) {
 	var destinationKey string
 	var err error
 	key := "test_CreateRule"
-	client.CreateKey(key, CreateOptions{RetentionSecs: defaultDuration})
+	client.CreateKey(key, defaultDuration)
 	var found bool
 	for aggType, aggString := range aggToString {
 		destinationKey = "test_CreateRule_dest" + aggString
-		client.CreateKey(destinationKey, CreateOptions{RetentionSecs: defaultDuration})
+		client.CreateKey(destinationKey, defaultDuration)
 		err = client.CreateRule(key, aggType, 100, destinationKey)
 		assert.Equal(t, nil, err)
 		info, _ := client.Info(key)
@@ -53,8 +52,8 @@ func TestCreateRule(t *testing.T) {
 func TestClientInfo(t *testing.T) {
 	key := "test_INFO"
 	destKey := "test_INFO_dest"
-	client.CreateKey(key, CreateOptions{RetentionSecs: defaultDuration})
-	client.CreateKey(destKey, CreateOptions{RetentionSecs: defaultDuration})
+	client.CreateKey(key, defaultDuration)
+	client.CreateKey(destKey, defaultDuration)
 	client.CreateRule(key, AvgAggregation, 100, destKey)
 	res, err := client.Info(key)
 	assert.Equal(t, nil, err)
@@ -67,8 +66,8 @@ func TestClientInfo(t *testing.T) {
 func TestDeleteRule(t *testing.T) {
 	key := "test_DELETE"
 	destKey := "test_DELETE_dest"
-	client.CreateKey(key, CreateOptions{RetentionSecs: defaultDuration})
-	client.CreateKey(destKey, CreateOptions{RetentionSecs: defaultDuration})
+	client.CreateKey(key, defaultDuration)
+	client.CreateKey(destKey, defaultDuration)
 	client.CreateRule(key, AvgAggregation, 100, destKey)
 	err := client.DeleteRule(key, destKey)
 	assert.Equal(t, nil, err)
@@ -92,7 +91,7 @@ func TestAdd(t *testing.T) {
 
 func TestClient_Range(t *testing.T) {
 	key := "test_Range"
-	client.CreateKey(key, CreateOptions{RetentionSecs: defaultDuration})
+	client.CreateKey(key, defaultDuration)
 	now := time.Now().Unix()
 	pi := 3.14159265359
 	halfPi := pi / 2
@@ -121,7 +120,7 @@ func TestClient_Range(t *testing.T) {
 
 func TestClient_AggRange(t *testing.T) {
 	key := "test_aggRange"
-	client.CreateKey(key, CreateOptions{RetentionSecs: defaultDuration})
+	client.CreateKey(key, defaultDuration)
 	now := int64(1552839965)
 	value := 5.0
 	value2 := 6.0
@@ -143,7 +142,7 @@ func TestClient_AggMultiRange(t *testing.T) {
 	        "cpu": "cpu1",
 	        "country": "US",
 	}
-	client.CreateKey(key, CreateOptions{RetentionSecs: defaultDuration, Labels: labels})
+	client.CreateKeyWithOptions(key, CreateOptions{RetentionSecs: defaultDuration, Labels: labels})
 	now := time.Now().Unix()
 	client.Add(key, now-2, 5.0, CreateOptions{})
 	client.Add(key, now-1, 6.0, CreateOptions{})
@@ -153,7 +152,7 @@ func TestClient_AggMultiRange(t *testing.T) {
 	        "cpu": "cpu2",
 	        "country": "US",
 	}
-	client.CreateKey(key2, CreateOptions{RetentionSecs: defaultDuration, Labels: labels2})
+	client.CreateKeyWithOptions(key2, CreateOptions{RetentionSecs: defaultDuration, Labels: labels2})
 	client.Add(key, now-2, 4.0, CreateOptions{})
 	client.Add(key, now-1, 8.0, CreateOptions{})
 
