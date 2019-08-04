@@ -40,7 +40,7 @@ type Client struct {
 var maxConns = 500
 
 // Helper function to create a string pointer from a string literal.
-// Useful for calls to NewClien with an auth pass that is known at compile time.
+// Useful for calls to NewClient with an auth pass that is known at compile time.
 func MakeStringPtr(s string) *string {
 	return &s
 }
