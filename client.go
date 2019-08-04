@@ -266,6 +266,19 @@ func (client *Client) Add(key string, timestamp int64, value float64) (storedTim
 	return redis.Int64( conn.Do("TS.ADD", key, timestamp, floatToStr(value)))
 }
 
+// addwithduration - append a new value to the series with a duration
+// args:
+// key - time series key name
+// timestamp - time of value
+// value - value
+// duration - value
+func (client *Client) AddWithRetention(key string, timestamp int64, value float64, duration int64) (err error) {
+	conn := client.Pool.Get()
+	defer conn.Close()
+	_, err = conn.Do("TS.ADD", key, timestamp, floatToStr(value), "RETENTION", strconv.FormatInt(duration, 10))
+	return err
+}
+
 type DataPoint struct {
 	Timestamp int64
 	Value     float64
@@ -368,7 +381,7 @@ func (client *Client) AggRange(key string, fromTimestamp int64, toTimestamp int6
 	bucketSizeSec int) (dataPoints []DataPoint, err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
-	info, err := conn.Do("TS.RANGE", key, strconv.FormatInt(fromTimestamp, 10), strconv.FormatInt(toTimestamp, 10), 
+	info, err := conn.Do("TS.RANGE", key, strconv.FormatInt(fromTimestamp, 10), strconv.FormatInt(toTimestamp, 10),
 		"AGGREGATION", aggType.String(), bucketSizeSec)
 	if err != nil {
 		return nil, err
