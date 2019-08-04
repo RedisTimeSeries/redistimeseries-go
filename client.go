@@ -7,9 +7,29 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
 	"github.com/gomodule/redigo/redis"
 )
+
+type CreateOptions struct {
+	RetentionSecs time.Duration
+	Labels map[string]string
+}
+
+// Append options to args
+func (options *CreateOptions) Append(args []interface{}) (result []interface{}) {
+	if options.RetentionSecs >= 0 {
+		args = append(args, "RETENTION", formatSec(options.RetentionSecs))			
+	}		
+	if len(options.Labels) > 0 {
+		args = append(args, "LABELS")
+		for key, value := range options.Labels {
+	        args = append(args, key)
+	        args = append(args, value)
+	    }
+	}
+	return args
+}
+
 
 // Client is an interface to time series redis commands
 type Client struct {
@@ -56,6 +76,17 @@ func (client *Client) CreateKey(key string, retentionTime time.Duration) (err er
 	defer conn.Close()
 	_, err = conn.Do("TS.CREATE", key, "RETENTION", formatSec(retentionTime))
 	return err
+}
+
+func (client *Client) CreateKeyWithOptions(key string, options CreateOptions) (err error) {
+	conn := client.Pool.Get()
+	defer conn.Close()
+	
+	args := []interface{}{key}
+	args = options.Append(args)
+
+	_, err = conn.Do("TS.CREATE", args...)
+	return err  
 }
 
 type Rule struct {
@@ -218,6 +249,17 @@ func strToFloat(inputString string) (float64, error) {
 // key - time series key name
 // timestamp - time of value
 // value - value
+// options - define options for create key on add 
+func (client *Client) AddWithOptions(key string, timestamp int64, value float64, options CreateOptions) (err error) {
+	conn := client.Pool.Get()
+	defer conn.Close()
+	
+	args := []interface{}{key, timestamp, floatToStr(value)}
+	args = options.Append(args)
+	_, err = conn.Do("TS.ADD", args...)
+	return err
+}
+
 func (client *Client) Add(key string, timestamp int64, value float64) (storedTimestamp int64, err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
@@ -274,6 +316,43 @@ func parseDataPoints(info interface{}) (dataPoints []DataPoint, err error) {
 	return dataPoints, nil
 }
 
+type Range struct {
+	Name       string
+	Labels     map[string]string
+	DataPoints []DataPoint
+}
+
+func parseRanges(info interface{}) (ranges []Range, err error) {
+	values, err := redis.Values(info, err)
+	if err != nil {
+		return nil, err
+	}
+	if len(values) == 0 {
+		return []Range{}, nil
+	}
+	
+	for _, i := range values {
+		iValues, err := redis.Values(i, err)
+		if err != nil {
+			return nil, err
+		}		
+		
+		name, err := redis.String(iValues[0], nil)
+		if err != nil {
+			return nil, err
+		}
+		
+		dataPoints, err := parseDataPoints(iValues[2])
+		if err != nil {
+			return nil, err
+		}
+		r := Range{ name, nil, dataPoints}
+		ranges = append(ranges, r)
+	}
+	return ranges, nil
+}
+
+
 // range - ranged query
 // args:
 // key - time series key name
@@ -309,4 +388,31 @@ func (client *Client) AggRange(key string, fromTimestamp int64, toTimestamp int6
 	}
 	dataPoints, err = parseDataPoints(info)
 	return dataPoints, err
+}
+	
+	// AggRange - aggregation over a ranged query
+// args:
+// fromTimestamp - start of range
+// toTimestamp - end of range
+// aggType - aggregation type
+// bucketSizeSec - time bucket for aggregation
+// filters - list of filters e.g. "a=bb", b!=aa"
+func (client *Client) AggMultiRange(fromTimestamp int64, toTimestamp int64, aggType AggregationType,
+	bucketSizeSec int, filters ...string) (ranges []Range, err error) {
+	conn := client.Pool.Get()
+	defer conn.Close()
+	
+	args := []interface{}{strconv.FormatInt(fromTimestamp, 10), strconv.FormatInt(toTimestamp, 10), 
+		"AGGREGATION", aggType.String(), bucketSizeSec, "FILTER"}
+
+	for _, filter := range filters{
+		args = append(args, filter) 
+	}
+	
+	info, err := conn.Do("TS.MRANGE", args...)
+	if err != nil {
+		return nil, err
+	}
+	ranges, err = parseRanges(info)
+	return ranges, err
 }

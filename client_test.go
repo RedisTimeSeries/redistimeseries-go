@@ -15,7 +15,14 @@ var tooShortDuration, _ = time.ParseDuration("10ms")
 func TestCreateKey(t *testing.T) {
 	err := client.CreateKey("test_CreateKey", defaultDuration)
 	assert.Equal(t, nil, err)
-
+	
+	labels := map[string]string{
+	        "cpu": "cpu1",
+	        "country": "IT",
+	}
+	err = client.CreateKeyWithOptions("test_CreateKeyLabels", CreateOptions{RetentionSecs: defaultDuration, Labels: labels})
+	assert.Equal(t, nil, err)
+	
 	err = client.CreateKey("test_CreateKey", tooShortDuration)
 	assert.NotNil(t, err)
 }
@@ -139,6 +146,34 @@ func TestClient_AggRange(t *testing.T) {
 	assert.Equal(t, 2.0, dataPoints[0].Value)
 
 	_, err = client.AggRange(key+"1", now-60, now, CountAggregation, 10)
+	assert.NotNil(t, err)
+}
+
+func TestClient_AggMultiRange(t *testing.T) {
+	key := "test_aggMultiRange1"
+	labels := map[string]string{
+	        "cpu": "cpu1",
+	        "country": "US",
+	}
+	now := time.Now().Unix()
+	client.AddWithOptions(key, now-2, 5.0, CreateOptions{RetentionSecs: defaultDuration, Labels: labels})
+	client.AddWithOptions(key, now-1, 6.0, CreateOptions{RetentionSecs: defaultDuration, Labels: labels})
+	
+	key2 := "test_aggMultiRange2"
+	labels2 := map[string]string{
+	        "cpu": "cpu2",
+	        "country": "US",
+	}
+	client.CreateKeyWithOptions(key2, CreateOptions{RetentionSecs: defaultDuration, Labels: labels2})
+	client.AddWithOptions(key, now-2, 4.0, CreateOptions{})
+	client.Add(key, now-1, 8.0)
+
+	ranges, err := client.AggMultiRange(now-60, now, CountAggregation, 10, "country=US")
+	assert.Equal(t, nil, err)
+	assert.Equal(t, 2, len(ranges))
+	assert.Equal(t, 2.0, ranges[0].DataPoints[0].Value)
+	
+	_, err = client.AggMultiRange(now-60, now, CountAggregation, 10)
 	assert.NotNil(t, err)
 
 }
