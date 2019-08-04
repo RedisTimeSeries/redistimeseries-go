@@ -15,7 +15,7 @@ var tooShortDuration, _ = time.ParseDuration("10ms")
 func TestCreateKey(t *testing.T) {
 	err := client.CreateKey("test_CreateKey", defaultDuration)
 	assert.Equal(t, nil, err)
-	
+
 	err = client.CreateKey("test_CreateKey", tooShortDuration)
 	assert.NotNil(t, err)
 }
@@ -82,6 +82,19 @@ func TestAdd(t *testing.T) {
 	assert.Equal(t, now, info.LastTimestamp)
 }
 
+func TestAddWithRetention(t *testing.T) {
+	// There is no way I know of yet that allows me to query the retention for a single datapoint
+	// this test should probably be improved
+	key := "test_ADDWITHRETENTION"
+	now := time.Now().Unix()
+	PI := 3.14159265359
+	client.CreateKey(key, defaultDuration)
+	err := client.AddWithRetention(key, now, PI, 2112)
+	assert.Equal(t, nil, err)
+	info, _ := client.Info(key)
+	assert.Equal(t, now, info.LastTimestamp)
+}
+
 func TestClient_Range(t *testing.T) {
 	key := "test_Range"
 	client.CreateKey(key, defaultDuration)
@@ -106,8 +119,8 @@ func TestClient_Range(t *testing.T) {
 	assert.Equal(t, nil, err)
 	expected = []DataPoint{}
 	assert.Equal(t, expected, dataPoints)
-	
-	_, err = client.Range(key + "1", now-1, now)
+
+	_, err = client.Range(key+"1", now-1, now)
 	assert.NotNil(t, err)
 }
 
@@ -124,7 +137,7 @@ func TestClient_AggRange(t *testing.T) {
 	dataPoints, err := client.AggRange(key, now-60, now, CountAggregation, 10)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 2.0, dataPoints[0].Value)
-	
+
 	_, err = client.AggRange(key+"1", now-60, now, CountAggregation, 10)
 	assert.NotNil(t, err)
 
