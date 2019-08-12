@@ -184,6 +184,10 @@ const (
 	CountAggregation
 	FirstAggregation
 	LastAggregation
+	StdPAggregation
+	StdSAggregation
+	VarPAggregation
+	VarSAggregation
 )
 
 var aggToString = map[AggregationType]string{
