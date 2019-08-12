@@ -184,6 +184,10 @@ const (
 	CountAggregation
 	FirstAggregation
 	LastAggregation
+	StdPAggregation
+	StdSAggregation
+	VarPAggregation
+	VarSAggregation
 )
 
 var aggToString = map[AggregationType]string{
@@ -194,6 +198,10 @@ var aggToString = map[AggregationType]string{
 	CountAggregation: "COUNT",
 	FirstAggregation: "FIRST",
 	LastAggregation:  "LAST",
+	StdPAggregation: "STD.P",
+	StdSAggregation: "STD.S",
+	VarPAggregation: "VAR.P",
+	VarSAggregation: "VAR.S",
 }
 
 func (aggType AggregationType) String() string {
