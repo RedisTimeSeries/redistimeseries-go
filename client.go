@@ -197,7 +197,7 @@ var aggToString = map[AggregationType]string{
 	StdPAggregation: "STD.P",
 	StdSAggregation: "STD.S",
 	VarPAggregation: "VAR.P",
-	VarSAggregation: "VAR.S"
+	VarSAggregation: "VAR.S",
 }
 
 func (aggType AggregationType) String() string {
