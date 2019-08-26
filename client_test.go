@@ -173,8 +173,8 @@ func TestClient_AggMultiRange(t *testing.T) {
 	        "country": "US",
 	}
 	client.CreateKeyWithOptions(key2, CreateOptions{RetentionSecs: defaultDuration, Labels: labels2})
-	client.AddWithOptions(key, now-2, 4.0, CreateOptions{})
-	client.Add(key, now-1, 8.0)
+	client.AddWithOptions(key2, now-2, 4.0, CreateOptions{})
+	client.Add(key2, now-1, 8.0)
 
 	ranges, err := client.AggMultiRange(now-60, now, CountAggregation, 10, "country=US")
 	assert.Equal(t, nil, err)
