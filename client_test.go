@@ -8,12 +8,12 @@ import (
 )
 
 var client = NewClient("localhost:6379", "test_client", MakeStringPtr("SUPERSECRET"))
-var dummy = client.FlashAll()
+var _ = client.FlushAll()
 
 var defaultDuration, _ = time.ParseDuration("1h")
 var tooShortDuration, _ = time.ParseDuration("10ms")
 
-func (client *Client) FlashAll() (err error) {
+func (client *Client) FlushAll() (err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
 	_, err = conn.Do("FLUSHALL")
