@@ -8,9 +8,17 @@ import (
 )
 
 var client = NewClient("localhost:6379", "test_client", MakeStringPtr("SUPERSECRET"))
+var _ = client.FlushAll()
 
 var defaultDuration, _ = time.ParseDuration("1h")
 var tooShortDuration, _ = time.ParseDuration("10ms")
+
+func (client *Client) FlushAll() (err error) {
+	conn := client.Pool.Get()
+	defer conn.Close()
+	_, err = conn.Do("FLUSHALL")
+	return err
+}
 
 func TestCreateKey(t *testing.T) {
 	err := client.CreateKey("test_CreateKey", defaultDuration)
@@ -58,7 +66,7 @@ func TestClientInfo(t *testing.T) {
 	res, err := client.Info(key)
 	assert.Equal(t, nil, err)
 	expected := KeyInfo{ChunkCount: 1,
-		MaxSamplesPerChunk: 360, LastTimestamp: 0, RetentionTime: 3600,
+		MaxSamplesPerChunk: 360, LastTimestamp: 0, RetentionTime: 3600000,
 		Rules: []Rule{{DestKey: destKey, BucketSizeSec: 100, AggType: AvgAggregation}}}
 	assert.Equal(t, expected, res)
 }
@@ -165,8 +173,8 @@ func TestClient_AggMultiRange(t *testing.T) {
 	        "country": "US",
 	}
 	client.CreateKeyWithOptions(key2, CreateOptions{RetentionSecs: defaultDuration, Labels: labels2})
-	client.AddWithOptions(key, now-2, 4.0, CreateOptions{})
-	client.Add(key, now-1, 8.0)
+	client.AddWithOptions(key2, now-2, 4.0, CreateOptions{})
+	client.Add(key2, now-1, 8.0)
 
 	ranges, err := client.AggMultiRange(now-60, now, CountAggregation, 10, "country=US")
 	assert.Equal(t, nil, err)

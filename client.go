@@ -18,7 +18,7 @@ type CreateOptions struct {
 // Append options to args
 func (options *CreateOptions) Append(args []interface{}) (result []interface{}) {
 	if options.RetentionSecs >= 0 {
-		args = append(args, "RETENTION", formatSec(options.RetentionSecs))			
+		args = append(args, "RETENTION", formatMilliSec(options.RetentionSecs))			
 	}		
 	if len(options.Labels) > 0 {
 		args = append(args, "LABELS")
@@ -63,18 +63,18 @@ func NewClient(addr, name string, authPass *string) *Client {
 	return ret
 }
 
-func formatSec(dur time.Duration) int64 {
-	if dur > 0 && dur < time.Second {
-		log.Printf("specified duration is %s, but minimal supported value is %s", dur, time.Second)
+func formatMilliSec(dur time.Duration) int64 {
+	if dur > 0 && dur < time.Millisecond {
+		log.Printf("specified duration is %s, but minimal supported value is %s", dur, time.Millisecond)
 	}
-	return int64(dur / time.Second)
+	return int64(dur / time.Millisecond)
 }
 
 // CreateKey create a new time-series
 func (client *Client) CreateKey(key string, retentionTime time.Duration) (err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
-	_, err = conn.Do("TS.CREATE", key, "RETENTION", formatSec(retentionTime))
+	_, err = conn.Do("TS.CREATE", key, "RETENTION", formatMilliSec(retentionTime))
 	return err
 }
 
