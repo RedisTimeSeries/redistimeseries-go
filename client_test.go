@@ -163,7 +163,7 @@ func TestClient_AggMultiRange(t *testing.T) {
 	        "cpu": "cpu1",
 	        "country": "US",
 	}
-	now := time.Now().Unix()
+	now := int64(1552839965)
 	client.AddWithOptions(key, now-2, 5.0, CreateOptions{RetentionSecs: defaultDuration, Labels: labels})
 	client.AddWithOptions(key, now-1, 6.0, CreateOptions{RetentionSecs: defaultDuration, Labels: labels})
 	
