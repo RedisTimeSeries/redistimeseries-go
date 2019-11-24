@@ -1,10 +1,11 @@
 package redis_timeseries_go
 
 import (
-	"github.com/gomodule/redigo/redis"
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	"github.com/gomodule/redigo/redis"
+	"github.com/stretchr/testify/assert"
 )
 
 var client = NewClient("localhost:6379", "test_client", MakeStringPtr("SUPERSECRET"))
@@ -23,14 +24,14 @@ func (client *Client) FlushAll() (err error) {
 func TestCreateKey(t *testing.T) {
 	err := client.CreateKey("test_CreateKey", defaultDuration)
 	assert.Equal(t, nil, err)
-	
+
 	labels := map[string]string{
-	        "cpu": "cpu1",
-	        "country": "IT",
+		"cpu":     "cpu1",
+		"country": "IT",
 	}
 	err = client.CreateKeyWithOptions("test_CreateKeyLabels", CreateOptions{RetentionSecs: defaultDuration, Labels: labels})
 	assert.Equal(t, nil, err)
-	
+
 	err = client.CreateKey("test_CreateKey", tooShortDuration)
 	assert.NotNil(t, err)
 }
@@ -66,7 +67,7 @@ func TestClientInfo(t *testing.T) {
 	res, err := client.Info(key)
 	assert.Equal(t, nil, err)
 	expected := KeyInfo{ChunkCount: 1,
-		MaxSamplesPerChunk: 360, LastTimestamp: 0, RetentionTime: 3600000,
+		MaxSamplesPerChunk: 256, LastTimestamp: 0, RetentionTime: 3600000,
 		Rules: []Rule{{DestKey: destKey, BucketSizeSec: 100, AggType: AvgAggregation}}}
 	assert.Equal(t, expected, res)
 }
@@ -160,17 +161,17 @@ func TestClient_AggRange(t *testing.T) {
 func TestClient_AggMultiRange(t *testing.T) {
 	key := "test_aggMultiRange1"
 	labels := map[string]string{
-	        "cpu": "cpu1",
-	        "country": "US",
+		"cpu":     "cpu1",
+		"country": "US",
 	}
 	now := int64(1552839965)
 	client.AddWithOptions(key, now-2, 5.0, CreateOptions{RetentionSecs: defaultDuration, Labels: labels})
 	client.AddWithOptions(key, now-1, 6.0, CreateOptions{RetentionSecs: defaultDuration, Labels: labels})
-	
+
 	key2 := "test_aggMultiRange2"
 	labels2 := map[string]string{
-	        "cpu": "cpu2",
-	        "country": "US",
+		"cpu":     "cpu2",
+		"country": "US",
 	}
 	client.CreateKeyWithOptions(key2, CreateOptions{RetentionSecs: defaultDuration, Labels: labels2})
 	client.AddWithOptions(key2, now-2, 4.0, CreateOptions{})
@@ -180,7 +181,7 @@ func TestClient_AggMultiRange(t *testing.T) {
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 2, len(ranges))
 	assert.Equal(t, 2.0, ranges[0].DataPoints[0].Value)
-	
+
 	_, err = client.AggMultiRange(now-60, now, CountAggregation, 10)
 	assert.NotNil(t, err)
 
