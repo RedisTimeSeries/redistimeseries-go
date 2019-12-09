@@ -101,6 +101,7 @@ type KeyInfo struct {
 	LastTimestamp      int64
 	RetentionTime      int64
 	Rules              []Rule
+	Labels    		   map[string]string
 }
 
 func ParseRules(ruleInterface interface{}, err error) (rules []Rule, retErr error) {
@@ -156,6 +157,8 @@ func ParseInfo(result interface{}, err error) (info KeyInfo, outErr error) {
 			info.MaxSamplesPerChunk, err = redis.Int64(values[i+1], nil)
 		case "lastTimestamp":
 			info.LastTimestamp, err = redis.Int64(values[i+1], nil)
+		case "labels":
+			info.Labels, err = ParseLabels(values[i+1])
 		}
 		if err != nil {
 			return KeyInfo{}, err
