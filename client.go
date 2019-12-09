@@ -258,7 +258,7 @@ func strToFloat(inputString string) (float64, error) {
 // timestamp - time of value
 // value - value
 // options - define options for create key on add 
-func (client *Client) AddWithOptions(key string, timestamp int64, value float64, options CreateOptions) (err error) {
+func (client *Client) AddWithOptions(key string, timestamp interface{}, value float64, options CreateOptions) (err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
 	
@@ -268,7 +268,7 @@ func (client *Client) AddWithOptions(key string, timestamp int64, value float64,
 	return err
 }
 
-func (client *Client) Add(key string, timestamp int64, value float64) (storedTimestamp int64, err error) {
+func (client *Client) Add(key string, timestamp interface{}, value float64) (storedTimestamp int64, err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
 	return redis.Int64( conn.Do("TS.ADD", key, timestamp, floatToStr(value)))
@@ -280,7 +280,7 @@ func (client *Client) Add(key string, timestamp int64, value float64) (storedTim
 // timestamp - time of value
 // value - value
 // duration - value
-func (client *Client) AddWithRetention(key string, timestamp int64, value float64, duration int64) (err error) {
+func (client *Client) AddWithRetention(key string, timestamp interface{}, value float64, duration int64) (err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
 	_, err = conn.Do("TS.ADD", key, timestamp, floatToStr(value), "RETENTION", strconv.FormatInt(duration, 10))
@@ -292,7 +292,7 @@ type DataPoint struct {
 	Value     float64
 }
 
-func parseDataPoints(info interface{}) (dataPoints []DataPoint, err error) {
+func ParseDataPoints(info interface{}) (dataPoints []DataPoint, err error) {
 	values, err := redis.Values(info, err)
 	if err != nil {
 		return nil, err
@@ -330,7 +330,7 @@ type Range struct {
 	DataPoints []DataPoint
 }
 
-func parseRanges(info interface{}) (ranges []Range, err error) {
+func ParseRanges(info interface{}) (ranges []Range, err error) {
 	values, err := redis.Values(info, err)
 	if err != nil {
 		return nil, err
@@ -350,7 +350,7 @@ func parseRanges(info interface{}) (ranges []Range, err error) {
 			return nil, err
 		}
 		
-		dataPoints, err := parseDataPoints(iValues[2])
+		dataPoints, err := ParseDataPoints(iValues[2])
 		if err != nil {
 			return nil, err
 		}
@@ -374,7 +374,7 @@ func (client *Client) Range(key string, fromTimestamp int64, toTimestamp int64) 
 	if err != nil {
 		return nil, err
 	}
-	dataPoints, err = parseDataPoints(info)
+	dataPoints, err = ParseDataPoints(info)
 	return dataPoints, err
 }
 
@@ -394,7 +394,7 @@ func (client *Client) AggRange(key string, fromTimestamp int64, toTimestamp int6
 	if err != nil {
 		return nil, err
 	}
-	dataPoints, err = parseDataPoints(info)
+	dataPoints, err = ParseDataPoints(info)
 	return dataPoints, err
 }
 	
@@ -421,6 +421,6 @@ func (client *Client) AggMultiRange(fromTimestamp int64, toTimestamp int64, aggT
 	if err != nil {
 		return nil, err
 	}
-	ranges, err = parseRanges(info)
+	ranges, err = ParseRanges(info)
 	return ranges, err
 }

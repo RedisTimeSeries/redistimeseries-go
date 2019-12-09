@@ -92,10 +92,11 @@ func TestAdd(t *testing.T) {
 	PI := 3.14159265359
 	client.CreateKey(key, defaultDuration)
 	storedTimestamp, err := client.Add(key, now, PI)
+	storedTimestamp2, err := client.Add(key, "*", PI)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, now, storedTimestamp)
 	info, _ := client.Info(key)
-	assert.Equal(t, now, info.LastTimestamp)
+	assert.Equal(t, storedTimestamp2, info.LastTimestamp)
 }
 
 func TestAddWithRetention(t *testing.T) {
