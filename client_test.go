@@ -1,6 +1,7 @@
 package redis_timeseries_go
 
 import (
+	"reflect"
 	"testing"
 	"time"
 
@@ -185,4 +186,39 @@ func TestClient_AggMultiRange(t *testing.T) {
 	_, err = client.AggMultiRange(now-60, now, CountAggregation, 10)
 	assert.NotNil(t, err)
 
+}
+
+func TestParseLabels(t *testing.T) {
+	type args struct {
+		res interface{}
+	}
+	tests := []struct {
+		name       string
+		args       args
+		wantLabels map[string]string
+		wantErr    bool
+	}{
+		{ "correctInput",
+			args{  []interface{}{[]interface{}{[]byte("hostname"), []byte("host_3")}, []interface{}{[]byte("region"), []byte("us-west-2")}} },
+			map[string]string{"hostname": "host_3","region": "us-west-2",},
+			false,
+		},
+		{ "IncorrectInput",
+			args{  []interface{}{[]interface{}{[]byte("hostname"), []byte("host_3")}, []interface{}{[]byte("region"), }} },
+			nil,
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotLabels, err := ParseLabels(tt.args.res)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ParseLabels() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(gotLabels, tt.wantLabels) {
+				t.Errorf("ParseLabels() gotLabels = %v, want %v", gotLabels, tt.wantLabels)
+			}
+		})
+	}
 }

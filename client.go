@@ -292,7 +292,7 @@ type DataPoint struct {
 	Value     float64
 }
 
-func parseDataPoints(info interface{}) (dataPoints []DataPoint, err error) {
+func ParseDataPoints(info interface{}) (dataPoints []DataPoint, err error) {
 	values, err := redis.Values(info, err)
 	if err != nil {
 		return nil, err
@@ -324,13 +324,39 @@ func parseDataPoints(info interface{}) (dataPoints []DataPoint, err error) {
 	return dataPoints, nil
 }
 
+func ParseLabels(res interface{}) (labels map[string]string, err error) {
+	values, err := redis.Values(res, err)
+	if err != nil {
+		return
+	}
+	labels = make(map[string]string, len(values))
+	for i := 0; i < len(values); i++ {
+		iValues, err := redis.Values(values[i], err)
+		if err != nil {
+			return nil, err
+		}
+		if len(iValues) != 2 {
+			err = errors.New("ParseLabels: expects 2 elements per inner-array")
+			return nil, err
+		}
+		key, okKey := iValues[0].([]byte)
+		value, okValue := iValues[1].([]byte)
+		if !okKey || !okValue {
+			err = errors.New("ParseLabels: StringMap key not a bulk string value")
+			return nil, err
+		}
+		labels[string(key)] = string(value)
+	}
+	return
+}
+
 type Range struct {
 	Name       string
 	Labels     map[string]string
 	DataPoints []DataPoint
 }
 
-func parseRanges(info interface{}) (ranges []Range, err error) {
+func ParseRanges(info interface{}) (ranges []Range, err error) {
 	values, err := redis.Values(info, err)
 	if err != nil {
 		return nil, err
@@ -343,18 +369,27 @@ func parseRanges(info interface{}) (ranges []Range, err error) {
 		iValues, err := redis.Values(i, err)
 		if err != nil {
 			return nil, err
-		}		
-		
+		}
+		if len(iValues) != 3 {
+			err = errors.New("ParseRanges: expects 3 elements per inner-array")
+			return nil, err
+		}
+
 		name, err := redis.String(iValues[0], nil)
 		if err != nil {
 			return nil, err
 		}
-		
-		dataPoints, err := parseDataPoints(iValues[2])
+
+		labels, err := ParseLabels(iValues[1])
 		if err != nil {
 			return nil, err
 		}
-		r := Range{ name, nil, dataPoints}
+
+		dataPoints, err := ParseDataPoints(iValues[2])
+		if err != nil {
+			return nil, err
+		}
+		r := Range{ name, labels, dataPoints}
 		ranges = append(ranges, r)
 	}
 	return ranges, nil
@@ -374,7 +409,7 @@ func (client *Client) Range(key string, fromTimestamp int64, toTimestamp int64) 
 	if err != nil {
 		return nil, err
 	}
-	dataPoints, err = parseDataPoints(info)
+	dataPoints, err = ParseDataPoints(info)
 	return dataPoints, err
 }
 
@@ -394,7 +429,7 @@ func (client *Client) AggRange(key string, fromTimestamp int64, toTimestamp int6
 	if err != nil {
 		return nil, err
 	}
-	dataPoints, err = parseDataPoints(info)
+	dataPoints, err = ParseDataPoints(info)
 	return dataPoints, err
 }
 	
@@ -421,6 +456,6 @@ func (client *Client) AggMultiRange(fromTimestamp int64, toTimestamp int64, aggT
 	if err != nil {
 		return nil, err
 	}
-	ranges, err = parseRanges(info)
+	ranges, err = ParseRanges(info)
 	return ranges, err
 }
