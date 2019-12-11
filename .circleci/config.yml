@@ -9,7 +9,7 @@ jobs:
       - image: circleci/golang:1.12
 
       - image: redislabs/redistimeseries:edge
-        command: ['--requirepass', 'SUPERSECRET' '--loadmodule', '/usr/lib/redis/modules/redistimeseries.so', 'MAX_SAMPLE_PER_CHUNK', '256']
+        command: ['--requirepass', 'SUPERSECRET', '--loadmodule', '/usr/lib/redis/modules/redistimeseries.so', 'MAX_SAMPLE_PER_CHUNK', '256']
         port: 6379:6379
 
     working_directory: /go/src/github.com/RedisTimeSeries/redistimeseries-go
