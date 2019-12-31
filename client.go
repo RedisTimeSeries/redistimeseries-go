@@ -3,33 +3,37 @@ package redis_timeseries_go
 import (
 	"errors"
 	"fmt"
+	"github.com/gomodule/redigo/redis"
 	"log"
 	"strconv"
 	"strings"
 	"time"
-	"github.com/gomodule/redigo/redis"
 )
 
 type CreateOptions struct {
-	RetentionSecs time.Duration
-	Labels map[string]string
+	RetentionMSecs time.Duration
+	Labels         map[string]string
 }
 
-// Append options to args
-func (options *CreateOptions) Append(args []interface{}) (result []interface{}) {
-	if options.RetentionSecs >= 0 {
-		args = append(args, "RETENTION", formatMilliSec(options.RetentionSecs))			
-	}		
+var DefaultCreateOptions = CreateOptions{
+	RetentionMSecs: 0,
+	Labels:         map[string]string{},
+}
+
+// Serialize options to args
+func (options *CreateOptions) Serialize(args []interface{}) (result []interface{}) {
+	if options.RetentionMSecs > 0 {
+		args = append(args, "RETENTION", formatMilliSec(options.RetentionMSecs))
+	}
 	if len(options.Labels) > 0 {
 		args = append(args, "LABELS")
 		for key, value := range options.Labels {
-	        args = append(args, key)
-	        args = append(args, value)
-	    }
+			args = append(args, key)
+			args = append(args, value)
+		}
 	}
 	return args
 }
-
 
 // Client is an interface to time series redis commands
 type Client struct {
@@ -71,22 +75,24 @@ func formatMilliSec(dur time.Duration) int64 {
 }
 
 // CreateKey create a new time-series
+//go:deprecated This function has been deprecated, use CreateKeyWithOptions instead
 func (client *Client) CreateKey(key string, retentionTime time.Duration) (err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
-	_, err = conn.Do("TS.CREATE", key, "RETENTION", formatMilliSec(retentionTime))
-	return err
+	opts := DefaultCreateOptions
+	opts.RetentionMSecs = retentionTime
+	return client.CreateKeyWithOptions(key, opts)
 }
 
 func (client *Client) CreateKeyWithOptions(key string, options CreateOptions) (err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
-	
+
 	args := []interface{}{key}
-	args = options.Append(args)
+	args = options.Serialize(args)
 
 	_, err = conn.Do("TS.CREATE", args...)
-	return err  
+	return err
 }
 
 type Rule struct {
@@ -101,7 +107,7 @@ type KeyInfo struct {
 	LastTimestamp      int64
 	RetentionTime      int64
 	Rules              []Rule
-	Labels    		   map[string]string
+	Labels             map[string]string
 }
 
 func ParseRules(ruleInterface interface{}, err error) (rules []Rule, retErr error) {
@@ -201,10 +207,10 @@ var aggToString = map[AggregationType]string{
 	CountAggregation: "COUNT",
 	FirstAggregation: "FIRST",
 	LastAggregation:  "LAST",
-	StdPAggregation: "STD.P",
-	StdSAggregation: "STD.S",
-	VarPAggregation: "VAR.P",
-	VarSAggregation: "VAR.S",
+	StdPAggregation:  "STD.P",
+	StdSAggregation:  "STD.S",
+	VarPAggregation:  "VAR.P",
+	VarSAggregation:  "VAR.S",
 }
 
 func (aggType AggregationType) String() string {
@@ -261,20 +267,33 @@ func strToFloat(inputString string) (float64, error) {
 // timestamp - time of value
 // value - value
 // options - define options for create key on add 
-func (client *Client) AddWithOptions(key string, timestamp int64, value float64, options CreateOptions) (err error) {
+func (client *Client) AddWithOptions(key string, timestamp int64, value float64, options CreateOptions) (storedTimestamp int64, err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
-	
+
 	args := []interface{}{key, timestamp, floatToStr(value)}
-	args = options.Append(args)
-	_, err = conn.Do("TS.ADD", args...)
-	return err
+	args = options.Serialize(args)
+	return redis.Int64(conn.Do("TS.ADD", args...))
 }
 
 func (client *Client) Add(key string, timestamp int64, value float64) (storedTimestamp int64, err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
-	return redis.Int64( conn.Do("TS.ADD", key, timestamp, floatToStr(value)))
+	return redis.Int64(conn.Do("TS.ADD", key, timestamp, floatToStr(value)))
+}
+
+func (client *Client) AddAutoTs(key string, value float64) (storedTimestamp int64, err error) {
+	conn := client.Pool.Get()
+	defer conn.Close()
+	return redis.Int64(conn.Do("TS.ADD", key, "*", floatToStr(value)))
+}
+
+func (client *Client) AddAutoTsWithOptions(key string, value float64, options CreateOptions) (storedTimestamp int64, err error) {
+	conn := client.Pool.Get()
+	defer conn.Close()
+	args := []interface{}{key, "*", floatToStr(value)}
+	args = options.Serialize(args)
+	return redis.Int64(conn.Do("TS.ADD", args...))
 }
 
 // addwithduration - append a new value to the series with a duration
@@ -283,11 +302,13 @@ func (client *Client) Add(key string, timestamp int64, value float64) (storedTim
 // timestamp - time of value
 // value - value
 // duration - value
-func (client *Client) AddWithRetention(key string, timestamp int64, value float64, duration int64) (err error) {
+//go:deprecated This function has been deprecated, use AddWithOptions instead
+func (client *Client) AddWithRetention(key string, timestamp int64, value float64, duration int64) (storedTimestamp int64, err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
-	_, err = conn.Do("TS.ADD", key, timestamp, floatToStr(value), "RETENTION", strconv.FormatInt(duration, 10))
-	return err
+	options := DefaultCreateOptions
+	options.RetentionMSecs = time.Duration(duration)
+	return client.AddWithOptions(key, timestamp, value, options)
 }
 
 type DataPoint struct {
@@ -367,7 +388,7 @@ func ParseRanges(info interface{}) (ranges []Range, err error) {
 	if len(values) == 0 {
 		return []Range{}, nil
 	}
-	
+
 	for _, i := range values {
 		iValues, err := redis.Values(i, err)
 		if err != nil {
@@ -392,12 +413,11 @@ func ParseRanges(info interface{}) (ranges []Range, err error) {
 		if err != nil {
 			return nil, err
 		}
-		r := Range{ name, labels, dataPoints}
+		r := Range{name, labels, dataPoints}
 		ranges = append(ranges, r)
 	}
 	return ranges, nil
 }
-
 
 // range - ranged query
 // args:
@@ -435,8 +455,8 @@ func (client *Client) AggRange(key string, fromTimestamp int64, toTimestamp int6
 	dataPoints, err = ParseDataPoints(info)
 	return dataPoints, err
 }
-	
-	// AggRange - aggregation over a ranged query
+
+// AggRange - aggregation over a ranged query
 // args:
 // fromTimestamp - start of range
 // toTimestamp - end of range
@@ -447,14 +467,14 @@ func (client *Client) AggMultiRange(fromTimestamp int64, toTimestamp int64, aggT
 	bucketSizeSec int, filters ...string) (ranges []Range, err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
-	
-	args := []interface{}{strconv.FormatInt(fromTimestamp, 10), strconv.FormatInt(toTimestamp, 10), 
+
+	args := []interface{}{strconv.FormatInt(fromTimestamp, 10), strconv.FormatInt(toTimestamp, 10),
 		"AGGREGATION", aggType.String(), bucketSizeSec, "FILTER"}
 
-	for _, filter := range filters{
-		args = append(args, filter) 
+	for _, filter := range filters {
+		args = append(args, filter)
 	}
-	
+
 	info, err := conn.Do("TS.MRANGE", args...)
 	if err != nil {
 		return nil, err

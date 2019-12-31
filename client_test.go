@@ -1,6 +1,7 @@
 package redis_timeseries_go
 
 import (
+	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -9,7 +10,25 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var client = NewClient("localhost:6379", "test_client", MakeStringPtr("SUPERSECRET"))
+func createClient() *Client {
+	valueh, exists := os.LookupEnv("REDISTIMESERIES_TEST_HOST")
+	host := "localhost:6379"
+	if exists && valueh != "" {
+		host = valueh
+	}
+	valuep, exists := os.LookupEnv("REDISTIMESERIES_TEST_PASSWORD")
+	password := "SUPERSECRET"
+	var ptr *string = nil
+	if exists {
+		password = valuep
+	}
+	if len(password) > 0 {
+		ptr = MakeStringPtr(password)
+	}
+	return NewClient(host, "test_client", ptr)
+}
+
+var client = createClient()
 var _ = client.FlushAll()
 
 var defaultDuration, _ = time.ParseDuration("1h")
@@ -30,7 +49,7 @@ func TestCreateKey(t *testing.T) {
 		"cpu":     "cpu1",
 		"country": "IT",
 	}
-	err = client.CreateKeyWithOptions("test_CreateKeyLabels", CreateOptions{RetentionSecs: defaultDuration, Labels: labels})
+	err = client.CreateKeyWithOptions("test_CreateKeyLabels", CreateOptions{RetentionMSecs: defaultDuration, Labels: labels})
 	assert.Equal(t, nil, err)
 
 	err = client.CreateKey("test_CreateKey", tooShortDuration)
@@ -109,7 +128,7 @@ func TestAddWithRetention(t *testing.T) {
 	now := time.Now().Unix()
 	PI := 3.14159265359
 	client.CreateKey(key, defaultDuration)
-	err := client.AddWithRetention(key, now, PI, 2112)
+	_, err := client.AddWithRetention(key, now, PI, 2112)
 	assert.Equal(t, nil, err)
 	info, _ := client.Info(key)
 	assert.Equal(t, now, info.LastTimestamp)
@@ -169,15 +188,15 @@ func TestClient_AggMultiRange(t *testing.T) {
 		"country": "US",
 	}
 	now := int64(1552839965)
-	client.AddWithOptions(key, now-2, 5.0, CreateOptions{RetentionSecs: defaultDuration, Labels: labels})
-	client.AddWithOptions(key, now-1, 6.0, CreateOptions{RetentionSecs: defaultDuration, Labels: labels})
+	client.AddWithOptions(key, now-2, 5.0, CreateOptions{RetentionMSecs: defaultDuration, Labels: labels})
+	client.AddWithOptions(key, now-1, 6.0, CreateOptions{RetentionMSecs: defaultDuration, Labels: labels})
 
 	key2 := "test_aggMultiRange2"
 	labels2 := map[string]string{
 		"cpu":     "cpu2",
 		"country": "US",
 	}
-	client.CreateKeyWithOptions(key2, CreateOptions{RetentionSecs: defaultDuration, Labels: labels2})
+	client.CreateKeyWithOptions(key2, CreateOptions{RetentionMSecs: defaultDuration, Labels: labels2})
 	client.AddWithOptions(key2, now-2, 4.0, CreateOptions{})
 	client.Add(key2, now-1, 8.0)
 
