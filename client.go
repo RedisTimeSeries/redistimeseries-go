@@ -3,11 +3,13 @@ package redis_timeseries_go
 import (
 	"errors"
 	"fmt"
-	"github.com/gomodule/redigo/redis"
 	"log"
+	"math"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/gomodule/redigo/redis"
 )
 
 type CreateOptions struct {
@@ -43,6 +45,50 @@ type Client struct {
 
 var maxConns = 500
 
+const TimeRangeMinimum = 0
+const TimeRangeMaximum = math.MaxInt64
+
+// MultiRangeOptions represent the options for querying across multiple time-series
+type MultiRangeOptions struct {
+	Count      int64
+	AggType    AggregationType
+	TimeBucket int
+	WithLabels bool
+}
+
+// MultiRangeOptions are the default options for querying across multiple time-series
+var DefaultMultiRangeOptions = MultiRangeOptions{
+	AggType:    -1,
+	TimeBucket: -1,
+	Count:      -1,
+	WithLabels: false,
+}
+
+func NewMultiRangeOptions() *MultiRangeOptions {
+	return &MultiRangeOptions{
+		AggType:    -1,
+		TimeBucket: -1,
+		Count:      -1,
+		WithLabels: false,
+	}
+}
+
+func (mrangeopts *MultiRangeOptions) SetCount(count int64) *MultiRangeOptions {
+	mrangeopts.Count = count
+	return mrangeopts
+}
+
+func (mrangeopts *MultiRangeOptions) SetAggregation(aggType AggregationType, timeBucket int) *MultiRangeOptions {
+	mrangeopts.AggType = aggType
+	mrangeopts.TimeBucket = timeBucket
+	return mrangeopts
+}
+
+func (mrangeopts *MultiRangeOptions) SetWithLabels(value bool) *MultiRangeOptions {
+	mrangeopts.WithLabels = value
+	return mrangeopts
+}
+
 // Helper function to create a string pointer from a string literal.
 // Useful for calls to NewClient with an auth pass that is known at compile time.
 func MakeStringPtr(s string) *string {
@@ -75,7 +121,7 @@ func formatMilliSec(dur time.Duration) int64 {
 }
 
 // CreateKey create a new time-series
-//go:deprecated This function has been deprecated, use CreateKeyWithOptions instead
+// Deprecated: This function has been deprecated, use CreateKeyWithOptions instead
 func (client *Client) CreateKey(key string, retentionTime time.Duration) (err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
@@ -266,7 +312,7 @@ func strToFloat(inputString string) (float64, error) {
 // key - time series key name
 // timestamp - time of value
 // value - value
-// options - define options for create key on add 
+// options - define options for create key on add
 func (client *Client) AddWithOptions(key string, timestamp int64, value float64, options CreateOptions) (storedTimestamp int64, err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
@@ -296,13 +342,13 @@ func (client *Client) AddAutoTsWithOptions(key string, value float64, options Cr
 	return redis.Int64(conn.Do("TS.ADD", args...))
 }
 
-// addwithduration - append a new value to the series with a duration
+// AddWithRetention - append a new value to the series with a duration
 // args:
 // key - time series key name
 // timestamp - time of value
 // value - value
 // duration - value
-//go:deprecated This function has been deprecated, use AddWithOptions instead
+// Deprecated: This function has been deprecated, use AddWithOptions instead
 func (client *Client) AddWithRetention(key string, timestamp int64, value float64, duration int64) (storedTimestamp int64, err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
@@ -456,13 +502,14 @@ func (client *Client) AggRange(key string, fromTimestamp int64, toTimestamp int6
 	return dataPoints, err
 }
 
-// AggRange - aggregation over a ranged query
+// AggMultiRange - Query a timestamp range across multiple time-series by filters.
 // args:
 // fromTimestamp - start of range
 // toTimestamp - end of range
 // aggType - aggregation type
 // bucketSizeSec - time bucket for aggregation
-// filters - list of filters e.g. "a=bb", b!=aa"
+// filters - list of filters e.g. "a=bb", "b!=aa"
+// Deprecated: This function has been deprecated, use MultiRangeWithOptions instead
 func (client *Client) AggMultiRange(fromTimestamp int64, toTimestamp int64, aggType AggregationType,
 	bucketSizeSec int, filters ...string) (ranges []Range, err error) {
 	conn := client.Pool.Get()
@@ -481,4 +528,42 @@ func (client *Client) AggMultiRange(fromTimestamp int64, toTimestamp int64, aggT
 	}
 	ranges, err = ParseRanges(info)
 	return ranges, err
+}
+
+// MultiRangeWithOptions - Query a timestamp range across multiple time-series by filters.
+// args:
+// fromTimestamp - start of range
+// toTimestamp - end of range
+// mrangeOptions - MultiRangeOptions options. You can use the default DefaultMultiRangeOptions
+// filters - list of filters e.g. "a=bb", "b!=aa"
+func (client *Client) MultiRangeWithOptions(fromTimestamp int64, toTimestamp int64, mrangeOptions MultiRangeOptions, filters ...string) (ranges []Range, err error) {
+	conn := client.Pool.Get()
+	defer conn.Close()
+
+	args := createMultiRangeCmdArguments(fromTimestamp, toTimestamp, mrangeOptions, filters)
+
+	info, err := conn.Do("TS.MRANGE", args...)
+	if err != nil {
+		return
+	}
+	ranges, err = ParseRanges(info)
+	return
+}
+
+func createMultiRangeCmdArguments(fromTimestamp int64, toTimestamp int64, mrangeOptions MultiRangeOptions, filters []string) []interface{} {
+	args := []interface{}{strconv.FormatInt(fromTimestamp, 10), strconv.FormatInt(toTimestamp, 10)}
+	if mrangeOptions.AggType != -1 {
+		args = append(args, "AGGREGATION", mrangeOptions.AggType.String(), strconv.Itoa(mrangeOptions.TimeBucket))
+	}
+	if mrangeOptions.Count != -1 {
+		args = append(args, "COUNT", strconv.FormatInt(mrangeOptions.Count, 10))
+	}
+	if mrangeOptions.WithLabels == true {
+		args = append(args, "WITHLABELS")
+	}
+	args = append(args, "FILTER")
+	for _, filter := range filters {
+		args = append(args, filter)
+	}
+	return args
 }

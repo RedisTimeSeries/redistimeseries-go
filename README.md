@@ -7,10 +7,15 @@
 
 # redis-timeseries-go
 
-Go client for RedisTimeSeries (https://github.com/RedisLabsModules/redis-timeseries)
+Go client for RedisTimeSeries (https://github.com/RedisLabsModules/redis-timeseries), based on redigo.
 
 Client and ConnPool based on the work of dvirsky and mnunberg on https://github.com/RediSearch/redisearch-go
 
+## Installing
+
+```sh
+$ go get github.com/RedisTimeSeries/redistimeseries-go
+```
 
 ## Running tests
 
