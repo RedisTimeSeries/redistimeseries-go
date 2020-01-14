@@ -210,6 +210,39 @@ func TestClient_AggMultiRange(t *testing.T) {
 
 }
 
+func TestClient_AggMultiRangeWithOptions(t *testing.T) {
+	key := "test_aggMultiRange1"
+	labels := map[string]string{
+		"cpu":     "cpu1",
+		"country": "US",
+	}
+	now := int64(1552839965)
+	client.AddWithOptions(key, now-2, 5.0, CreateOptions{RetentionMSecs: defaultDuration, Labels: labels})
+	client.AddWithOptions(key, now-1, 6.0, CreateOptions{RetentionMSecs: defaultDuration, Labels: labels})
+
+	key2 := "test_aggMultiRange2"
+	labels2 := map[string]string{
+		"cpu":     "cpu2",
+		"country": "US",
+	}
+	client.CreateKeyWithOptions(key2, CreateOptions{RetentionMSecs: defaultDuration, Labels: labels2})
+	client.AddWithOptions(key2, now-2, 4.0, CreateOptions{})
+	client.Add(key2, now-1, 8.0)
+
+	ranges, err := client.MultiRangeWithOptions(now-60, now, DefaultMultiRangeOptions, "country=US")
+	assert.Equal(t, nil, err)
+	assert.Equal(t, 2, len(ranges))
+
+	ranges, err = client.MultiRangeWithOptions(now-60, now, MultiRangeOptions{AggType: CountAggregation, TimeBucket: 10, Count: -1, WithLabels: false}, "country=US")
+	assert.Equal(t, nil, err)
+	assert.Equal(t, 2, len(ranges))
+	assert.Equal(t, 2.0, ranges[0].DataPoints[0].Value)
+
+	_, err = client.MultiRangeWithOptions(now-60, now, MultiRangeOptions{AggType: CountAggregation, TimeBucket: 10, Count: -1, WithLabels: false})
+	assert.NotNil(t, err)
+
+}
+
 func TestParseLabels(t *testing.T) {
 	type args struct {
 		res interface{}
@@ -220,13 +253,13 @@ func TestParseLabels(t *testing.T) {
 		wantLabels map[string]string
 		wantErr    bool
 	}{
-		{ "correctInput",
-			args{  []interface{}{[]interface{}{[]byte("hostname"), []byte("host_3")}, []interface{}{[]byte("region"), []byte("us-west-2")}} },
-			map[string]string{"hostname": "host_3","region": "us-west-2",},
+		{"correctInput",
+			args{[]interface{}{[]interface{}{[]byte("hostname"), []byte("host_3")}, []interface{}{[]byte("region"), []byte("us-west-2")}}},
+			map[string]string{"hostname": "host_3", "region": "us-west-2",},
 			false,
 		},
-		{ "IncorrectInput",
-			args{  []interface{}{[]interface{}{[]byte("hostname"), []byte("host_3")}, []interface{}{[]byte("region"), }} },
+		{"IncorrectInput",
+			args{[]interface{}{[]interface{}{[]byte("hostname"), []byte("host_3")}, []interface{}{[]byte("region"),}}},
 			nil,
 			true,
 		},
@@ -240,6 +273,32 @@ func TestParseLabels(t *testing.T) {
 			}
 			if !reflect.DeepEqual(gotLabels, tt.wantLabels) {
 				t.Errorf("ParseLabels() gotLabels = %v, want %v", gotLabels, tt.wantLabels)
+			}
+		})
+	}
+}
+
+func TestCreateMultiRangeCmdArguments(t *testing.T) {
+	type args struct {
+		fromTimestamp int64
+		toTimestamp   int64
+		mrangeOptions MultiRangeOptions
+		filters       []string
+	}
+	tests := []struct {
+		name string
+		args args
+		want []interface{}
+	}{
+		{ "default", args{0,1,DefaultMultiRangeOptions,[]string{"labels!="}}, []interface{}{"0","1","FILTER","labels!="}, },
+		{ "withlabels", args{0,1,*NewMultiRangeOptions().SetWithLabels(true),[]string{"labels!="}}, []interface{}{"0","1","WITHLABELS","FILTER","labels!="}, },
+		{ "withlabels and aggregation", args{0,1,*NewMultiRangeOptions().SetAggregation(AvgAggregation,60).SetWithLabels(true),[]string{"labels!="}}, []interface{}{"0","1","AGGREGATION","AVG","60","WITHLABELS","FILTER","labels!="}, },
+		{ "withlabels, aggregation and count", args{0,1,*NewMultiRangeOptions().SetAggregation(AvgAggregation,60).SetWithLabels(true).SetCount(120),[]string{"labels!="}}, []interface{}{"0","1","AGGREGATION","AVG","60","COUNT","120","WITHLABELS","FILTER","labels!="}, },
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := createMultiRangeCmdArguments(tt.args.fromTimestamp, tt.args.toTimestamp, tt.args.mrangeOptions, tt.args.filters); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("CreateMultiRangeCmdArguments() = %v, want %v", got, tt.want)
 			}
 		})
 	}
