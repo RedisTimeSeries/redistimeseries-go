@@ -56,6 +56,35 @@ func TestCreateKey(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
+func TestCreateUncompressedKey(t *testing.T) {
+	compressedKey := "test_Compressed"
+	uncompressedKey := "test_Uncompressed"
+	err := client.CreateKeyWithOptions(compressedKey, CreateOptions{Uncompressed: false})
+	assert.Equal(t, nil, err)
+	err = client.CreateKeyWithOptions(uncompressedKey, CreateOptions{Uncompressed: true})
+	assert.Equal(t, nil, err)
+	var i int64 = 0
+	for ; i < 1000; i++ {
+		client.Add(compressedKey, i, 18.7)
+		client.Add(uncompressedKey, i, 18.7)
+	}
+	CompressedInfo, _ := client.Info(compressedKey)
+	UncompressedInfo, _ := client.Info(uncompressedKey)
+	assert.True(t, CompressedInfo.ChunkCount == 1)
+	assert.True(t, UncompressedInfo.ChunkCount == 4)
+
+	compressedKey = "test_Compressed_Add"
+	uncompressedKey = "test_Uncompressed_Add"
+	for i = 0; i < 1000; i++ {
+		client.AddWithOptions(compressedKey, i, 18.7, CreateOptions{Uncompressed: false})
+		client.AddWithOptions(uncompressedKey, i, 18.7, CreateOptions{Uncompressed: true})
+	}
+	CompressedInfo, _ = client.Info(compressedKey)
+	UncompressedInfo, _ = client.Info(uncompressedKey)
+	assert.True(t, CompressedInfo.ChunkCount == 1)
+	assert.True(t, UncompressedInfo.ChunkCount == 4)
+}
+
 func TestCreateRule(t *testing.T) {
 	var destinationKey string
 	var err error
