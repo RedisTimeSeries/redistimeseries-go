@@ -127,9 +127,9 @@ func TestAdd(t *testing.T) {
 	assert.True(t, storedTimestamp1 < storedTimestamp2)
 
 	// Test with auto timestamp with options
-	storedTimestamp1, _ = client.AddAutoTsWithOptions(key, PI, CreateOptions{Uncompressed: true})
+	storedTimestamp1, _ = client.AddAutoTsWithOptions(key, PI, CreateOptions{RetentionMSecs: defaultDuration})
 	time.Sleep(1 * time.Millisecond)
-	storedTimestamp2, _ = client.AddAutoTsWithOptions(key, PI, CreateOptions{Uncompressed: true})
+	storedTimestamp2, _ = client.AddAutoTsWithOptions(key, PI, CreateOptions{RetentionMSecs: defaultDuration})
 	assert.True(t, storedTimestamp1 < storedTimestamp2)
 }
 
