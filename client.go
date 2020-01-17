@@ -13,17 +13,22 @@ import (
 )
 
 type CreateOptions struct {
+	Uncompressed   bool
 	RetentionMSecs time.Duration
 	Labels         map[string]string
 }
 
 var DefaultCreateOptions = CreateOptions{
+	Uncompressed:	false,
 	RetentionMSecs: 0,
 	Labels:         map[string]string{},
 }
 
 // Serialize options to args
 func (options *CreateOptions) Serialize(args []interface{}) (result []interface{}) {
+	if options.Uncompressed == true {
+		args = append(args, "UNCOMPRESSED")
+	}	
 	if options.RetentionMSecs > 0 {
 		args = append(args, "RETENTION", formatMilliSec(options.RetentionMSecs))
 	}
