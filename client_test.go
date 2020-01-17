@@ -72,6 +72,17 @@ func TestCreateUncompressedKey(t *testing.T) {
 	UncompressedInfo, _ := client.Info(uncompressedKey)
 	assert.True(t, CompressedInfo.ChunkCount == 1)
 	assert.True(t, UncompressedInfo.ChunkCount == 4)
+
+	compressedKey = "test_Compressed_Add"
+	uncompressedKey = "test_Uncompressed_Add"
+	for i = 0; i < 1000; i++ {
+		client.AddWithOptions(compressedKey, i, 18.7, CreateOptions{Uncompressed: false})
+		client.AddWithOptions(uncompressedKey, i, 18.7, CreateOptions{Uncompressed: true})
+	}
+	CompressedInfo, _ = client.Info(compressedKey)
+	UncompressedInfo, _ = client.Info(uncompressedKey)
+	assert.True(t, CompressedInfo.ChunkCount == 1)
+	assert.True(t, UncompressedInfo.ChunkCount == 4)
 }
 
 func TestCreateRule(t *testing.T) {
@@ -215,6 +226,7 @@ func TestClient_AggMultiRange(t *testing.T) {
 		"country": "US",
 	}
 	client.CreateKeyWithOptions(key2, CreateOptions{RetentionMSecs: defaultDuration, Labels: labels2})
+	client.AddWithOptions(key2, now-2, 4.0, CreateOptions{})
 	client.Add(key2, now-1, 8.0)
 
 	ranges, err := client.AggMultiRange(now-60, now, CountAggregation, 10, "country=US")
