@@ -119,6 +119,18 @@ func TestAdd(t *testing.T) {
 	assert.Equal(t, now, storedTimestamp)
 	info, _ := client.Info(key)
 	assert.Equal(t, now, info.LastTimestamp)
+
+	// Test with auto timestamp
+	storedTimestamp1, _ := client.AddAutoTs(key, PI)
+	time.Sleep(1 * time.Millisecond)
+	storedTimestamp2, _ := client.AddAutoTs(key, PI)
+	assert.True(t, storedTimestamp1 < storedTimestamp2)
+
+	// Test with auto timestamp with options
+	storedTimestamp1, _ = client.AddAutoTsWithOptions(key, PI, CreateOptions{Uncompressed: true})
+	time.Sleep(1 * time.Millisecond)
+	storedTimestamp2, _ = client.AddAutoTsWithOptions(key, PI, CreateOptions{Uncompressed: true})
+	assert.True(t, storedTimestamp1 < storedTimestamp2)
 }
 
 func TestAddWithRetention(t *testing.T) {
