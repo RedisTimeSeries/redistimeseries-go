@@ -42,6 +42,7 @@ func (client *Client) FlushAll() (err error) {
 }
 
 func TestCreateKey(t *testing.T) {
+	client.FlushAll()
 	err := client.CreateKey("test_CreateKey", defaultDuration)
 	assert.Equal(t, nil, err)
 
@@ -57,6 +58,7 @@ func TestCreateKey(t *testing.T) {
 }
 
 func TestCreateUncompressedKey(t *testing.T) {
+	client.FlushAll()
 	compressedKey := "test_Compressed"
 	uncompressedKey := "test_Uncompressed"
 	err := client.CreateKeyWithOptions(compressedKey, CreateOptions{Uncompressed: false})
@@ -86,20 +88,21 @@ func TestCreateUncompressedKey(t *testing.T) {
 }
 
 func TestCreateRule(t *testing.T) {
+	client.FlushAll()
 	var destinationKey string
 	var err error
 	key := "test_CreateRule"
 	client.CreateKey(key, defaultDuration)
 	var found bool
-	for aggType, aggString := range aggToString {
-		destinationKey = "test_CreateRule_dest" + aggString
+	for _, aggString := range aggToString {
+		destinationKey = string("test_CreateRule_dest" + aggString)
 		client.CreateKey(destinationKey, defaultDuration)
-		err = client.CreateRule(key, aggType, 100, destinationKey)
+		err = client.CreateRule(key, aggString, 100, destinationKey)
 		assert.Equal(t, nil, err)
 		info, _ := client.Info(key)
 		found = false
 		for _, rule := range info.Rules {
-			if aggType == rule.AggType {
+			if aggString == rule.AggType {
 				found = true
 			}
 		}
@@ -108,6 +111,7 @@ func TestCreateRule(t *testing.T) {
 }
 
 func TestClientInfo(t *testing.T) {
+	client.FlushAll()
 	key := "test_INFO"
 	destKey := "test_INFO_dest"
 	client.CreateKey(key, defaultDuration)
@@ -117,14 +121,14 @@ func TestClientInfo(t *testing.T) {
 	assert.Equal(t, nil, err)
 	expected := KeyInfo{ChunkCount: 1,
 		MaxSamplesPerChunk: 256, LastTimestamp: 0, RetentionTime: 3600000,
-		Rules: []Rule{{DestKey: destKey, BucketSizeSec: 100, AggType: AvgAggregation},
-		},
+		Rules:  []Rule{{DestKey: destKey, BucketSizeSec: 100, AggType: AvgAggregation}},
 		Labels: map[string]string{},
 	}
 	assert.Equal(t, expected, res)
 }
 
 func TestDeleteRule(t *testing.T) {
+	client.FlushAll()
 	key := "test_DELETE"
 	destKey := "test_DELETE_dest"
 	client.CreateKey(key, defaultDuration)
@@ -139,6 +143,7 @@ func TestDeleteRule(t *testing.T) {
 }
 
 func TestAdd(t *testing.T) {
+	client.FlushAll()
 	key := "test_ADD"
 	now := time.Now().Unix()
 	PI := 3.14159265359
@@ -163,74 +168,46 @@ func TestAdd(t *testing.T) {
 }
 
 func TestAddWithRetention(t *testing.T) {
-	// There is no way I know of yet that allows me to query the retention for a single datapoint
-	// this test should probably be improved
+	client.FlushAll()
 	key := "test_ADDWITHRETENTION"
 	now := time.Now().Unix()
 	PI := 3.14159265359
 	client.CreateKey(key, defaultDuration)
-	_, err := client.AddWithRetention(key, now, PI, 2112)
+	_, err := client.AddWithRetention(key, now, PI, 1000000)
 	assert.Equal(t, nil, err)
 	info, _ := client.Info(key)
 	assert.Equal(t, now, info.LastTimestamp)
 }
 
-func TestClient_Range(t *testing.T) {
-	key := "test_Range"
-	client.CreateKey(key, defaultDuration)
-	now := time.Now().Unix()
-	pi := 3.14159265359
-	halfPi := pi / 2
-
-	client.Add(key, now-2, halfPi)
-	client.Add(key, now, pi)
-
-	dataPoints, err := client.Range(key, now-1, now)
-	assert.Equal(t, nil, err)
-	expected := []DataPoint{{Timestamp: now, Value: pi}}
-	assert.Equal(t, expected, dataPoints)
-
-	dataPoints, err = client.Range(key, now-2, now)
-	assert.Equal(t, nil, err)
-	expected = []DataPoint{{Timestamp: now - 2, Value: halfPi}, {Timestamp: now, Value: pi}}
-	assert.Equal(t, expected, dataPoints)
-
-	dataPoints, err = client.Range(key, now-4, now-3)
-	assert.Equal(t, nil, err)
-	expected = []DataPoint{}
-	assert.Equal(t, expected, dataPoints)
-
-	_, err = client.Range(key+"1", now-1, now)
-	assert.NotNil(t, err)
-}
-
 func TestClient_AggRange(t *testing.T) {
+	client.FlushAll()
 	key := "test_aggRange"
 	client.CreateKey(key, defaultDuration)
-	now := int64(1552839965)
-	value := 5.0
+	ts1 := int64(1)
+	ts2 := int64(10)
+
+	value1 := 5.0
 	value2 := 6.0
 
-	client.Add(key, now-2, value)
-	client.Add(key, now-1, value2)
+	client.Add(key, ts1, value1)
+	client.Add(key, ts2, value2)
 
-	dataPoints, err := client.AggRange(key, now-60, now, CountAggregation, 10)
+	dataPoints, err := client.AggRange(key, ts1, ts2, CountAggregation, 10)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 2.0, dataPoints[0].Value)
-
-	_, err = client.AggRange(key+"1", now-60, now, CountAggregation, 10)
-	assert.NotNil(t, err)
 }
 
 func TestClient_AggMultiRange(t *testing.T) {
+	client.FlushAll()
 	key := "test_aggMultiRange1"
 	labels := map[string]string{
 		"cpu":     "cpu1",
 		"country": "US",
 	}
-	now := int64(1552839965)
-	client.AddWithOptions(key, now-2, 5.0, CreateOptions{RetentionMSecs: defaultDuration, Labels: labels})
-	client.AddWithOptions(key, now-1, 6.0, CreateOptions{RetentionMSecs: defaultDuration, Labels: labels})
+	ts1 := int64(1)
+	ts2 := int64(2)
+	client.AddWithOptions(key, ts1, 5.0, CreateOptions{RetentionMSecs: defaultDuration, Labels: labels})
+	client.AddWithOptions(key, ts2, 6.0, CreateOptions{RetentionMSecs: defaultDuration, Labels: labels})
 
 	key2 := "test_aggMultiRange2"
 	labels2 := map[string]string{
@@ -238,28 +215,30 @@ func TestClient_AggMultiRange(t *testing.T) {
 		"country": "US",
 	}
 	client.CreateKeyWithOptions(key2, CreateOptions{RetentionMSecs: defaultDuration, Labels: labels2})
-	client.AddWithOptions(key2, now-2, 4.0, CreateOptions{})
-	client.Add(key2, now-1, 8.0)
+	client.AddWithOptions(key2, ts1, 4.0, CreateOptions{})
+	client.Add(key2, ts2, 8.0)
 
-	ranges, err := client.AggMultiRange(now-60, now, CountAggregation, 10, "country=US")
+	ranges, err := client.AggMultiRange(ts1, ts2, CountAggregation, 10, "country=US")
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 2, len(ranges))
 	assert.Equal(t, 2.0, ranges[0].DataPoints[0].Value)
 
-	_, err = client.AggMultiRange(now-60, now, CountAggregation, 10)
+	_, err = client.AggMultiRange(ts1, ts2, CountAggregation, 10)
 	assert.NotNil(t, err)
 
 }
 
 func TestClient_AggMultiRangeWithOptions(t *testing.T) {
+	client.FlushAll()
 	key := "test_aggMultiRange1"
 	labels := map[string]string{
 		"cpu":     "cpu1",
 		"country": "US",
 	}
-	now := int64(1552839965)
-	client.AddWithOptions(key, now-2, 5.0, CreateOptions{RetentionMSecs: defaultDuration, Labels: labels})
-	client.AddWithOptions(key, now-1, 6.0, CreateOptions{RetentionMSecs: defaultDuration, Labels: labels})
+	ts1 := int64(1)
+	ts2 := int64(2)
+	client.AddWithOptions(key, ts1, 1, CreateOptions{RetentionMSecs: defaultDuration, Labels: labels})
+	client.AddWithOptions(key, ts2, 2, CreateOptions{RetentionMSecs: defaultDuration, Labels: labels})
 
 	key2 := "test_aggMultiRange2"
 	labels2 := map[string]string{
@@ -267,79 +246,175 @@ func TestClient_AggMultiRangeWithOptions(t *testing.T) {
 		"country": "US",
 	}
 	client.CreateKeyWithOptions(key2, CreateOptions{RetentionMSecs: defaultDuration, Labels: labels2})
-	client.AddWithOptions(key2, now-2, 4.0, CreateOptions{})
-	client.Add(key2, now-1, 8.0)
+	client.AddWithOptions(key2, ts1, 1, CreateOptions{})
+	client.Add(key2, ts2, 2)
 
-	ranges, err := client.MultiRangeWithOptions(now-60, now, DefaultMultiRangeOptions, "country=US")
+	ranges, err := client.MultiRangeWithOptions(ts1, ts2, DefaultMultiRangeOptions, "country=US")
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 2, len(ranges))
-
-	ranges, err = client.MultiRangeWithOptions(now-60, now, MultiRangeOptions{AggType: CountAggregation, TimeBucket: 10, Count: -1, WithLabels: false}, "country=US")
-	assert.Equal(t, nil, err)
-	assert.Equal(t, 2, len(ranges))
-	assert.Equal(t, 2.0, ranges[0].DataPoints[0].Value)
-
-	_, err = client.MultiRangeWithOptions(now-60, now, MultiRangeOptions{AggType: CountAggregation, TimeBucket: 10, Count: -1, WithLabels: false})
-	assert.NotNil(t, err)
-
 }
 
-func TestParseLabels(t *testing.T) {
+func TestClient_Get(t *testing.T) {
+	client.FlushAll()
+	keyWithData := "test_TestClient_Get_keyWithData"
+	keyEmpty := "test_TestClient_Get_Empty_Key"
+	noKey := "test_TestClient_Get_dontexist"
+
+	err := client.CreateKeyWithOptions(keyEmpty, DefaultCreateOptions)
+	if err != nil {
+		t.Errorf("TestClient_Get CreateKeyWithOptions() error = %v", err)
+		return
+	}
+
+	_, err = client.AddWithOptions(keyWithData, 1, 5.0, DefaultCreateOptions)
+	if err != nil {
+		t.Errorf("TestClient_Get AddWithOptions() error = %v", err)
+		return
+	}
+
+	type fields struct {
+		Pool ConnPool
+		Name string
+	}
 	type args struct {
-		res interface{}
+		key string
 	}
 	tests := []struct {
-		name       string
-		args       args
-		wantLabels map[string]string
-		wantErr    bool
+		name          string
+		fields        fields
+		args          args
+		wantDataPoint *DataPoint
+		wantErr       bool
 	}{
-		{"correctInput",
-			args{[]interface{}{[]interface{}{[]byte("hostname"), []byte("host_3")}, []interface{}{[]byte("region"), []byte("us-west-2")}}},
-			map[string]string{"hostname": "host_3", "region": "us-west-2",},
-			false,
-		},
-		{"IncorrectInput",
-			args{[]interface{}{[]interface{}{[]byte("hostname"), []byte("host_3")}, []interface{}{[]byte("region"),}}},
-			nil,
-			true,
-		},
+		{"empty key", fields{client.Pool, "test"}, args{keyEmpty}, nil, false},
+		{"key with value", fields{client.Pool, "test"}, args{keyWithData}, &DataPoint{1, 5.0}, false},
+		{"no key error", fields{client.Pool, "test"}, args{noKey}, nil, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotLabels, err := ParseLabels(tt.args.res)
+			client := &Client{
+				Pool: tt.fields.Pool,
+				Name: tt.fields.Name,
+			}
+			gotDataPoint, err := client.Get(tt.args.key)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("ParseLabels() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("Get() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(gotLabels, tt.wantLabels) {
-				t.Errorf("ParseLabels() gotLabels = %v, want %v", gotLabels, tt.wantLabels)
+			if tt.wantErr == false {
+				if !reflect.DeepEqual(gotDataPoint, tt.wantDataPoint) && tt.wantErr == false {
+					t.Errorf("Get() gotDataPoint = %v, want %v", gotDataPoint, tt.wantDataPoint)
+				}
 			}
 		})
 	}
 }
 
-func TestCreateMultiRangeCmdArguments(t *testing.T) {
+func TestClient_MultiGet(t *testing.T) {
+	client.FlushAll()
+	key1 := "test_TestClient_MultiGet_key1"
+	key2 := "test_TestClient_MultiGet_key2"
+	labels1 := map[string]string{
+		"metric":  "cpu",
+		"country": "US",
+	}
+	labels2 := map[string]string{
+		"metric":  "cpu",
+		"country": "UK",
+	}
+
+	_, err := client.AddWithOptions(key1, 1, 5.0, CreateOptions{Labels: labels1})
+	if err != nil {
+		t.Errorf("TestClient_MultiGet Add() error = %v", err)
+		return
+	}
+	_, err = client.Add(key1, 2, 15.0)
+	_, err = client.Add(key1, 3, 15.0)
+
+	_, err = client.AddWithOptions(key2, 1, 5.0, CreateOptions{Labels: labels2})
+
+	if err != nil {
+		t.Errorf("TestClient_MultiGet Add() error = %v", err)
+		return
+	}
+
+	type fields struct {
+		Pool ConnPool
+		Name string
+	}
 	type args struct {
-		fromTimestamp int64
-		toTimestamp   int64
-		mrangeOptions MultiRangeOptions
-		filters       []string
+		filters []string
 	}
 	tests := []struct {
-		name string
-		args args
-		want []interface{}
+		name       string
+		fields     fields
+		args       args
+		wantRanges []Range
+		wantErr    bool
 	}{
-		{ "default", args{0,1,DefaultMultiRangeOptions,[]string{"labels!="}}, []interface{}{"0","1","FILTER","labels!="}, },
-		{ "withlabels", args{0,1,*NewMultiRangeOptions().SetWithLabels(true),[]string{"labels!="}}, []interface{}{"0","1","WITHLABELS","FILTER","labels!="}, },
-		{ "withlabels and aggregation", args{0,1,*NewMultiRangeOptions().SetAggregation(AvgAggregation,60).SetWithLabels(true),[]string{"labels!="}}, []interface{}{"0","1","AGGREGATION","AVG","60","WITHLABELS","FILTER","labels!="}, },
-		{ "withlabels, aggregation and count", args{0,1,*NewMultiRangeOptions().SetAggregation(AvgAggregation,60).SetWithLabels(true).SetCount(120),[]string{"labels!="}}, []interface{}{"0","1","AGGREGATION","AVG","60","COUNT","120","WITHLABELS","FILTER","labels!="}, },
+		{"multi key", fields{client.Pool, "test"}, args{[]string{"metric=cpu", "country=UK"}}, []Range{Range{key2, map[string]string{}, []DataPoint{DataPoint{1, 5.0}}}}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := createMultiRangeCmdArguments(tt.args.fromTimestamp, tt.args.toTimestamp, tt.args.mrangeOptions, tt.args.filters); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("CreateMultiRangeCmdArguments() = %v, want %v", got, tt.want)
+			client := &Client{
+				Pool: tt.fields.Pool,
+				Name: tt.fields.Name,
+			}
+			gotRanges, err := client.MultiGet(tt.args.filters...)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("MultiGet() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(gotRanges, tt.wantRanges) {
+				t.Errorf("MultiGet() gotRanges = %v, want %v", gotRanges, tt.wantRanges)
+			}
+		})
+	}
+}
+
+func TestClient_Range(t *testing.T) {
+	client.FlushAll()
+	key1 := "TestClient_Range_key1"
+	key2 := "TestClient_Range_key2"
+	client.CreateKeyWithOptions(key1, DefaultCreateOptions)
+	client.CreateKeyWithOptions(key2, DefaultCreateOptions)
+
+	client.Add(key1, 1, 5)
+	client.Add(key1, 2, 10)
+
+	type fields struct {
+		Pool ConnPool
+		Name string
+	}
+	type args struct {
+		key           string
+		fromTimestamp int64
+		toTimestamp   int64
+	}
+	tests := []struct {
+		name           string
+		fields         fields
+		args           args
+		wantDataPoints []DataPoint
+		wantErr        bool
+	}{
+		{"multi points", fields{client.Pool, "test"}, args{key1, 1, 2}, []DataPoint{{1, 5}, {2, 10}}, false},
+		{"empty serie", fields{client.Pool, "test"}, args{key2, 1, 2}, []DataPoint{}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client := &Client{
+				Pool: tt.fields.Pool,
+				Name: tt.fields.Name,
+			}
+			gotDataPoints, err := client.Range(tt.args.key, tt.args.fromTimestamp, tt.args.toTimestamp)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Range() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			assert.Equal(t, gotDataPoints, tt.wantDataPoints)
+			if !reflect.DeepEqual((gotDataPoints), tt.wantDataPoints) {
+				t.Errorf("Range() gotDataPoints = %v, want %v", (gotDataPoints), tt.wantDataPoints)
 			}
 		})
 	}

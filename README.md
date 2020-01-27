@@ -22,39 +22,58 @@ $ go get github.com/RedisTimeSeries/redistimeseries-go
 A simple test suite is provided, and can be run with:
 
 ```sh
-$ go test
+$ REDISTIMESERIES_TEST_PASSWORD="" go test
 ```
 
 The tests expect a Redis server with the RedisTimeSeries module loaded to be available at localhost:6379
 
 ## Example Code
 
-```
+```go
+package main 
+
 import (
         "fmt"
-        "github.com/RedisTimeSeries/redistimeseries-go"
-        "time"
+        redistimeseries "github.com/RedisTimeSeries/redistimeseries-go"
 )
 
 func main() {
-	// Connect to localhost with no password
-        var client = redis_timeseries_go.NewClient("localhost:6379", "nohelp", nil)
-        var duration, _ = time.ParseDuration("1m")
+		// Connect to localhost with no password
+        var client = redistimeseries.NewClient("localhost:6379", "nohelp", nil)
         var keyname = "mytest"
-        _, havit := client.Info(keyname)
-        if havit != nil {
-                client.CreateKey(keyname, duration)
-                client.CreateKey(keyname+"_avg", 0)
-                client.CreateRule(keyname, redis_timeseries_go.AvgAggregation, 60, keyname+"_avg")
+        _, haveit := client.Info(keyname)
+        if haveit != nil {
+			client.CreateKeyWithOptions(keyname, redistimeseries.DefaultCreateOptions)
+			client.CreateKeyWithOptions(keyname+"_avg", redistimeseries.DefaultCreateOptions)
+			client.CreateRule(keyname, redistimeseries.AvgAggregation, 60, keyname+"_avg")
         }
-        now :=  time.Now().UnixNano() / 1e6 // now in ms
-        err := client.Add(keyname, now, 100)
+		// Add sample with timestamp from server time and value 100
+        // TS.ADD mytest * 100 
+        _, err := client.AddAutoTs(keyname, 100)
         if err != nil {
                 fmt.Println("Error:", err)
         }
-
 }
 ```
+
+## Supported RedisTimeSeries Commands
+
+| Command | Recommended API and godoc  |
+| :---          |  ----: |
+| [TS.CREATE](https://oss.redislabs.com/redistimeseries/commands/#tscreate) |   [CreateKeyWithOptions](https://godoc.org/github.com/RedisTimeSeries/redistimeseries-go#Client.CreateKeyWithOptions)          |
+| [TS.ALTER](https://oss.redislabs.com/redistimeseries/commands/#tsalter) |   N/A          |
+| [TS.ADD](https://oss.redislabs.com/redistimeseries/commands/#tsadd) |   <ul><li>[Add](https://godoc.org/github.com/RedisTimeSeries/redistimeseries-go#Client.Add)</li><li>[AddAutoTs](https://godoc.org/github.com/RedisTimeSeries/redistimeseries-go#Client.AddAutoTs)</li><li>[AddWithOptions](https://godoc.org/github.com/RedisTimeSeries/redistimeseries-go#Client.AddWithOptions)</li><li>[AddAutoTsWithOptions](https://godoc.org/github.com/RedisTimeSeries/redistimeseries-go#Client.AddWithOptions)</li> </ul>          |
+| [TS.MADD](https://oss.redislabs.com/redistimeseries/commands/#tsmadd) |    N/A |
+| [TS.INCRBY/TS.DECRBY](https://oss.redislabs.com/redistimeseries/commands/#tsincrbytsdecrby) |    N/A         |
+| [TS.CREATERULE](https://oss.redislabs.com/redistimeseries/commands/#tscreaterule) |   [CreateRule](https://godoc.org/github.com/RedisTimeSeries/redistimeseries-go#Client.CreateRule)          |
+| [TS.DELETERULE](https://oss.redislabs.com/redistimeseries/commands/#tsdeleterule) |   [DeleteRule](https://godoc.org/github.com/RedisTimeSeries/redistimeseries-go#Client.DeleteRule)          |
+| [TS.RANGE](https://oss.redislabs.com/redistimeseries/commands/#tsrange) |   [RangeWithOptions](https://godoc.org/github.com/RedisTimeSeries/redistimeseries-go#Client.RangeWithOptions)          |
+| [TS.MRANGE](https://oss.redislabs.com/redistimeseries/commands/#tsmrange) |   [MultiRangeWithOptions](https://godoc.org/github.com/RedisTimeSeries/redistimeseries-go#Client.MultiRangeWithOptions)          |
+| [TS.GET](https://oss.redislabs.com/redistimeseries/commands/#tsget) |   [Get](https://godoc.org/github.com/RedisTimeSeries/redistimeseries-go#Client.Get)          |
+| [TS.MGET](https://oss.redislabs.com/redistimeseries/commands/#tsmget) |   [MultiGet](https://godoc.org/github.com/RedisTimeSeries/redistimeseries-go#Client.MultiGet)          |
+| [TS.INFO](https://oss.redislabs.com/redistimeseries/commands/#tsinfo) |   [Info](https://godoc.org/github.com/RedisTimeSeries/redistimeseries-go#Client.Info)          |
+| [TS.QUERYINDEX](https://oss.redislabs.com/redistimeseries/commands/#tsqueryindex) |    N/A |
+
 
 ## License
 
