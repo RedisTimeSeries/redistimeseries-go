@@ -2,6 +2,7 @@ package redis_timeseries_go
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"time"
 )
@@ -43,10 +44,9 @@ type Client struct {
 	Name string
 }
 
-//
-//const TimeRangeMinimum = 0
-//const TimeRangeMaximum = math.MaxInt64
-//const TimeRangeFull = int64(-1)
+const TimeRangeMinimum = 0
+const TimeRangeMaximum = math.MaxInt64
+const TimeRangeFull = int64(-1)
 
 type Rule struct {
 	DestKey       string

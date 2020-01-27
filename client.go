@@ -52,19 +52,29 @@ func (client *Client) CreateKeyWithOptions(key string, options CreateOptions) (e
 	return err
 }
 
+
+// Add - Append (or create and append) a new sample to the series
+// args:
+// key - time series key name
+// timestamp - time of value
+// value - value
 func (client *Client) Add(key string, timestamp int64, value float64) (storedTimestamp int64, err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
 	return redis.Int64(conn.Do("TS.ADD", key, timestamp, floatToStr(value)))
 }
 
+// AddAutoTs - Append (or create and append) a new sample to the series, with DB automatic timestamp (using the system clock)
+// args:
+// key - time series key name
+// value - value
 func (client *Client) AddAutoTs(key string, value float64) (storedTimestamp int64, err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
 	return redis.Int64(conn.Do("TS.ADD", key, "*", floatToStr(value)))
 }
 
-// add - append a new value to the series
+// AddWithOptions - Append (or create and append) a new sample to the series, with the specified CreateOptions
 // args:
 // key - time series key name
 // timestamp - time of value
@@ -82,6 +92,11 @@ func (client *Client) AddWithOptions(key string, timestamp int64, value float64,
 	return redis.Int64(conn.Do("TS.ADD", args...))
 }
 
+// AddAutoTsWithOptions - Append (or create and append) a new sample to the series, with the specified CreateOptions and DB automatic timestamp (using the system clock)
+// args:
+// key - time series key name
+// value - value
+// options - define options for create key on add
 func (client *Client) AddAutoTsWithOptions(key string, value float64, options CreateOptions) (storedTimestamp int64, err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
@@ -108,22 +123,23 @@ func (client *Client) AddWithRetention(key string, timestamp int64, value float6
 	return client.AddWithOptions(key, timestamp, value, options)
 }
 
-// TS.CREATERULE create a compaction rule
-// SOURCE_KEY - key name for source time series
-// AGG_TYPE - AggregationType
-// BUCKET_SIZE_SEC - time bucket for aggregated compaction,
-// DEST_KEY - key name for destination time series
-func (client *Client) CreateRule(sourceKey string, aggType AggregationType, bucketSizeSec uint, destinationKey string) (err error) {
+// CreateRule - create a compaction rule
+// args:
+// sourceKey - key name for source time series
+// aggType - AggregationType
+// bucketSizeMSec - Time bucket for aggregation in milliseconds
+// destinationKey - key name for destination time series
+func (client *Client) CreateRule(sourceKey string, aggType AggregationType, bucketSizeMSec uint, destinationKey string) (err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
-	_, err = conn.Do("TS.CREATERULE", sourceKey, destinationKey, "AGGREGATION", aggType, bucketSizeSec)
+	_, err = conn.Do("TS.CREATERULE", sourceKey, destinationKey, "AGGREGATION", aggType, bucketSizeMSec)
 	return err
 }
 
 // DeleteRule - delete a compaction rule
 // args:
-// SOURCE_KEY - key name for source time series
-// DEST_KEY - key name for destination time series
+// sourceKey - key name for source time series
+// destinationKey - key name for destination time series
 func (client *Client) DeleteRule(sourceKey string, destinationKey string) (err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
@@ -250,7 +266,9 @@ func (client *Client) MultiGet(filters ...string) (ranges []Range,
 	return
 }
 
-// Info create a new time-series
+// Returns information and statistics on the time-series.
+// args:
+// key - time-series key name
 func (client *Client) Info(key string) (res KeyInfo, err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
