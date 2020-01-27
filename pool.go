@@ -18,9 +18,9 @@ type SingleHostPool struct {
 
 func NewSingleHostPool(host string, authPass *string) *SingleHostPool {
 	ret := &redis.Pool{
-		Dial: dialFuncWrapper(host, authPass),
+		Dial:         dialFuncWrapper(host, authPass),
 		TestOnBorrow: testOnBorrow,
-		MaxIdle: maxConns,
+		MaxIdle:      maxConns,
 	}
 
 	return &SingleHostPool{ret}
@@ -28,15 +28,15 @@ func NewSingleHostPool(host string, authPass *string) *SingleHostPool {
 
 type MultiHostPool struct {
 	sync.Mutex
-	pools map[string]*redis.Pool
-	hosts []string
+	pools    map[string]*redis.Pool
+	hosts    []string
 	authPass *string
 }
 
 func NewMultiHostPool(hosts []string, authPass *string) *MultiHostPool {
 	return &MultiHostPool{
-		pools: make(map[string]*redis.Pool, len(hosts)),
-		hosts: hosts,
+		pools:    make(map[string]*redis.Pool, len(hosts)),
+		hosts:    hosts,
 		authPass: authPass,
 	}
 }
@@ -50,9 +50,9 @@ func (p *MultiHostPool) Get() redis.Conn {
 
 	if !found {
 		pool = &redis.Pool{
-			Dial: dialFuncWrapper(host, p.authPass),
+			Dial:         dialFuncWrapper(host, p.authPass),
 			TestOnBorrow: testOnBorrow,
-			MaxIdle: maxConns,
+			MaxIdle:      maxConns,
 		}
 		p.pools[host] = pool
 	}

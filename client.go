@@ -1,104 +1,15 @@
 package redis_timeseries_go
 
 import (
-	"errors"
-	"fmt"
-	"log"
-	"math"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/gomodule/redigo/redis"
 )
 
-type CreateOptions struct {
-	Uncompressed   bool
-	RetentionMSecs time.Duration
-	Labels         map[string]string
-}
-
-var DefaultCreateOptions = CreateOptions{
-	Uncompressed:	false,
-	RetentionMSecs: 0,
-	Labels:         map[string]string{},
-}
-
-// Serialize options to args
-func (options *CreateOptions) Serialize(args []interface{}) (result []interface{}) {
-	if options.Uncompressed == true {
-		args = append(args, "UNCOMPRESSED")
-	}	
-	if options.RetentionMSecs > 0 {
-		args = append(args, "RETENTION", formatMilliSec(options.RetentionMSecs))
-	}
-	if len(options.Labels) > 0 {
-		args = append(args, "LABELS")
-		for key, value := range options.Labels {
-			args = append(args, key)
-			args = append(args, value)
-		}
-	}
-	return args
-}
-
-// Client is an interface to time series redis commands
-type Client struct {
-	Pool ConnPool
-	Name string
-}
-
+// TODO: refactor this hard limit and revise client locking
+// Client Max Connections
 var maxConns = 500
-
-const TimeRangeMinimum = 0
-const TimeRangeMaximum = math.MaxInt64
-
-// MultiRangeOptions represent the options for querying across multiple time-series
-type MultiRangeOptions struct {
-	Count      int64
-	AggType    AggregationType
-	TimeBucket int
-	WithLabels bool
-}
-
-// MultiRangeOptions are the default options for querying across multiple time-series
-var DefaultMultiRangeOptions = MultiRangeOptions{
-	AggType:    -1,
-	TimeBucket: -1,
-	Count:      -1,
-	WithLabels: false,
-}
-
-func NewMultiRangeOptions() *MultiRangeOptions {
-	return &MultiRangeOptions{
-		AggType:    -1,
-		TimeBucket: -1,
-		Count:      -1,
-		WithLabels: false,
-	}
-}
-
-func (mrangeopts *MultiRangeOptions) SetCount(count int64) *MultiRangeOptions {
-	mrangeopts.Count = count
-	return mrangeopts
-}
-
-func (mrangeopts *MultiRangeOptions) SetAggregation(aggType AggregationType, timeBucket int) *MultiRangeOptions {
-	mrangeopts.AggType = aggType
-	mrangeopts.TimeBucket = timeBucket
-	return mrangeopts
-}
-
-func (mrangeopts *MultiRangeOptions) SetWithLabels(value bool) *MultiRangeOptions {
-	mrangeopts.WithLabels = value
-	return mrangeopts
-}
-
-// Helper function to create a string pointer from a string literal.
-// Useful for calls to NewClient with an auth pass that is known at compile time.
-func MakeStringPtr(s string) *string {
-	return &s
-}
 
 // NewClient creates a new client connecting to the redis host, and using the given name as key prefix.
 // Addr can be a single host:port pair, or a comma separated list of host:port,host:port...
@@ -118,13 +29,6 @@ func NewClient(addr, name string, authPass *string) *Client {
 	return ret
 }
 
-func formatMilliSec(dur time.Duration) int64 {
-	if dur > 0 && dur < time.Millisecond {
-		log.Printf("specified duration is %s, but minimal supported value is %s", dur, time.Millisecond)
-	}
-	return int64(dur / time.Millisecond)
-}
-
 // CreateKey create a new time-series
 // Deprecated: This function has been deprecated, use CreateKeyWithOptions instead
 func (client *Client) CreateKey(key string, retentionTime time.Duration) (err error) {
@@ -140,179 +44,37 @@ func (client *Client) CreateKeyWithOptions(key string, options CreateOptions) (e
 	defer conn.Close()
 
 	args := []interface{}{key}
-	args = options.Serialize(args)
-
+	args, err = options.Serialize(args)
+	if err != nil {
+		return
+	}
 	_, err = conn.Do("TS.CREATE", args...)
 	return err
 }
 
-type Rule struct {
-	DestKey       string
-	BucketSizeSec int
-	AggType       AggregationType
-}
 
-type KeyInfo struct {
-	ChunkCount         int64
-	MaxSamplesPerChunk int64
-	LastTimestamp      int64
-	RetentionTime      int64
-	Rules              []Rule
-	Labels             map[string]string
-}
-
-func ParseRules(ruleInterface interface{}, err error) (rules []Rule, retErr error) {
-	if err != nil {
-		return nil, err
-	}
-	ruleSlice, err := redis.Values(ruleInterface, nil)
-	if err != nil {
-		return nil, err
-	}
-	for _, ruleSlice := range ruleSlice {
-
-		ruleValues, err := redis.Values(ruleSlice, nil)
-		if err != nil {
-			return nil, err
-		}
-		destKey, err := redis.String(ruleValues[0], nil)
-		if err != nil {
-			return nil, err
-		}
-		bucketSizeSec, err := redis.Int(ruleValues[1], nil)
-		if err != nil {
-			return nil, err
-		}
-		aggType, err := toAggregationType(ruleValues[2])
-		if err != nil {
-			return nil, err
-		}
-		rules = append(rules, Rule{destKey, bucketSizeSec, aggType})
-	}
-	return rules, nil
-}
-
-func ParseInfo(result interface{}, err error) (info KeyInfo, outErr error) {
-	values, err := redis.Values(result, nil)
-	if err != nil {
-		return KeyInfo{}, err
-	}
-	if len(values)%2 != 0 {
-		return KeyInfo{}, errors.New("ParseInfo expects even number of values result")
-	}
-	var key string
-	for i := 0; i < len(values); i += 2 {
-		key, err = redis.String(values[i], nil)
-		switch key {
-		case "rules":
-			info.Rules, err = ParseRules(values[i+1], nil)
-		case "retentionTime":
-			info.RetentionTime, err = redis.Int64(values[i+1], nil)
-		case "chunkCount":
-			info.ChunkCount, err = redis.Int64(values[i+1], nil)
-		case "maxSamplesPerChunk":
-			info.MaxSamplesPerChunk, err = redis.Int64(values[i+1], nil)
-		case "lastTimestamp":
-			info.LastTimestamp, err = redis.Int64(values[i+1], nil)
-		case "labels":
-			info.Labels, err = ParseLabels(values[i+1])
-		}
-		if err != nil {
-			return KeyInfo{}, err
-		}
-	}
-
-	return info, nil
-}
-
-// Info create a new time-series
-func (client *Client) Info(key string) (res KeyInfo, err error) {
-	conn := client.Pool.Get()
-	defer conn.Close()
-	res, err = ParseInfo(conn.Do("TS.INFO", key))
-	return res, err
-}
-
-//go:generate stringer -type=AggregationType
-type AggregationType int
-
-const (
-	AvgAggregation AggregationType = iota
-	SumAggregation
-	MinAggregation
-	MaxAggregation
-	CountAggregation
-	FirstAggregation
-	LastAggregation
-	StdPAggregation
-	StdSAggregation
-	VarPAggregation
-	VarSAggregation
-)
-
-var aggToString = map[AggregationType]string{
-	AvgAggregation:   "AVG",
-	SumAggregation:   "SUM",
-	MinAggregation:   "MIN",
-	MaxAggregation:   "MAX",
-	CountAggregation: "COUNT",
-	FirstAggregation: "FIRST",
-	LastAggregation:  "LAST",
-	StdPAggregation:  "STD.P",
-	StdSAggregation:  "STD.S",
-	VarPAggregation:  "VAR.P",
-	VarSAggregation:  "VAR.S",
-}
-
-func (aggType AggregationType) String() string {
-	return aggToString[aggType]
-}
-
-func toAggregationType(aggType interface{}) (AggregationType, error) {
-	aggTypeStr, err := redis.String(aggType, nil)
-	if err != nil {
-		return 0, err
-	}
-	for k, v := range aggToString {
-		if v == aggTypeStr {
-			return k, nil
-		}
-	}
-	return 0, fmt.Errorf("AggregationType not found %q", aggType)
-}
-
-// TS.CREATERULE create a compaction rule
-// SOURCE_KEY - key name for source time series
-// AGG_TYPE - AggregationType
-// BUCKET_SIZE_SEC - time bucket for aggregated compaction,
-// DEST_KEY - key name for destination time series
-func (client *Client) CreateRule(sourceKey string, aggType AggregationType, bucketSizeSec uint, destinationKey string) (err error) {
-	conn := client.Pool.Get()
-	defer conn.Close()
-	_, err = conn.Do("TS.CREATERULE", sourceKey, destinationKey, "AGGREGATION", aggType.String(), bucketSizeSec)
-	return err
-}
-
-// deleterule - delete a compaction rule
+// Add - Append (or create and append) a new sample to the series
 // args:
-// SOURCE_KEY - key name for source time series
-// DEST_KEY - key name for destination time series
-func (client *Client) DeleteRule(sourceKey string, destinationKey string) (err error) {
+// key - time series key name
+// timestamp - time of value
+// value - value
+func (client *Client) Add(key string, timestamp int64, value float64) (storedTimestamp int64, err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
-	_, err = conn.Do("TS.DELETERULE", sourceKey, destinationKey)
-	return err
+	return redis.Int64(conn.Do("TS.ADD", key, timestamp, floatToStr(value)))
 }
 
-func floatToStr(inputFloat float64) string {
-	return strconv.FormatFloat(inputFloat, 'g', 16, 64)
+// AddAutoTs - Append (or create and append) a new sample to the series, with DB automatic timestamp (using the system clock)
+// args:
+// key - time series key name
+// value - value
+func (client *Client) AddAutoTs(key string, value float64) (storedTimestamp int64, err error) {
+	conn := client.Pool.Get()
+	defer conn.Close()
+	return redis.Int64(conn.Do("TS.ADD", key, "*", floatToStr(value)))
 }
 
-func strToFloat(inputString string) (float64, error) {
-	return strconv.ParseFloat(inputString, 64)
-}
-
-// add - append a new value to the series
+// AddWithOptions - Append (or create and append) a new sample to the series, with the specified CreateOptions
 // args:
 // key - time series key name
 // timestamp - time of value
@@ -323,27 +85,26 @@ func (client *Client) AddWithOptions(key string, timestamp int64, value float64,
 	defer conn.Close()
 
 	args := []interface{}{key, timestamp, floatToStr(value)}
-	args = options.Serialize(args)
+	args, err = options.Serialize(args)
+	if err != nil {
+		return
+	}
 	return redis.Int64(conn.Do("TS.ADD", args...))
 }
 
-func (client *Client) Add(key string, timestamp int64, value float64) (storedTimestamp int64, err error) {
-	conn := client.Pool.Get()
-	defer conn.Close()
-	return redis.Int64(conn.Do("TS.ADD", key, timestamp, floatToStr(value)))
-}
-
-func (client *Client) AddAutoTs(key string, value float64) (storedTimestamp int64, err error) {
-	conn := client.Pool.Get()
-	defer conn.Close()
-	return redis.Int64(conn.Do("TS.ADD", key, "*", floatToStr(value)))
-}
-
+// AddAutoTsWithOptions - Append (or create and append) a new sample to the series, with the specified CreateOptions and DB automatic timestamp (using the system clock)
+// args:
+// key - time series key name
+// value - value
+// options - define options for create key on add
 func (client *Client) AddAutoTsWithOptions(key string, value float64, options CreateOptions) (storedTimestamp int64, err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
 	args := []interface{}{key, "*", floatToStr(value)}
-	args = options.Serialize(args)
+	args, err = options.Serialize(args)
+	if err != nil {
+		return
+	}
 	return redis.Int64(conn.Do("TS.ADD", args...))
 }
 
@@ -362,213 +123,155 @@ func (client *Client) AddWithRetention(key string, timestamp int64, value float6
 	return client.AddWithOptions(key, timestamp, value, options)
 }
 
-type DataPoint struct {
-	Timestamp int64
-	Value     float64
-}
-
-func ParseDataPoints(info interface{}) (dataPoints []DataPoint, err error) {
-	values, err := redis.Values(info, err)
-	if err != nil {
-		return nil, err
-	}
-	if len(values) == 0 {
-		return []DataPoint{}, nil
-	}
-	for _, i := range values {
-		iValues, err := redis.Values(i, err)
-		if err != nil {
-			return nil, err
-		}
-		rawTimestamp := iValues[0]
-		strValue, err := redis.String(iValues[1], nil)
-		if err != nil {
-			return nil, err
-		}
-		timestamp, err := redis.Int64(rawTimestamp, nil)
-		if err != nil {
-			return nil, err
-		}
-		value, err := strToFloat(strValue)
-		if err != nil {
-			return nil, err
-		}
-		dataPoint := DataPoint{timestamp, value}
-		dataPoints = append(dataPoints, dataPoint)
-	}
-	return dataPoints, nil
-}
-
-func ParseLabels(res interface{}) (labels map[string]string, err error) {
-	values, err := redis.Values(res, err)
-	if err != nil {
-		return
-	}
-	labels = make(map[string]string, len(values))
-	for i := 0; i < len(values); i++ {
-		iValues, err := redis.Values(values[i], err)
-		if err != nil {
-			return nil, err
-		}
-		if len(iValues) != 2 {
-			err = errors.New("ParseLabels: expects 2 elements per inner-array")
-			return nil, err
-		}
-		key, okKey := iValues[0].([]byte)
-		value, okValue := iValues[1].([]byte)
-		if !okKey || !okValue {
-			err = errors.New("ParseLabels: StringMap key not a bulk string value")
-			return nil, err
-		}
-		labels[string(key)] = string(value)
-	}
-	return
-}
-
-type Range struct {
-	Name       string
-	Labels     map[string]string
-	DataPoints []DataPoint
-}
-
-func ParseRanges(info interface{}) (ranges []Range, err error) {
-	values, err := redis.Values(info, err)
-	if err != nil {
-		return nil, err
-	}
-	if len(values) == 0 {
-		return []Range{}, nil
-	}
-
-	for _, i := range values {
-		iValues, err := redis.Values(i, err)
-		if err != nil {
-			return nil, err
-		}
-		if len(iValues) != 3 {
-			err = errors.New("ParseRanges: expects 3 elements per inner-array")
-			return nil, err
-		}
-
-		name, err := redis.String(iValues[0], nil)
-		if err != nil {
-			return nil, err
-		}
-
-		labels, err := ParseLabels(iValues[1])
-		if err != nil {
-			return nil, err
-		}
-
-		dataPoints, err := ParseDataPoints(iValues[2])
-		if err != nil {
-			return nil, err
-		}
-		r := Range{name, labels, dataPoints}
-		ranges = append(ranges, r)
-	}
-	return ranges, nil
-}
-
-// range - ranged query
+// CreateRule - create a compaction rule
 // args:
-// key - time series key name
-// fromTimestamp - start of range
-// toTimestamp - end of range
-func (client *Client) Range(key string, fromTimestamp int64, toTimestamp int64) (dataPoints []DataPoint,
-	err error) {
+// sourceKey - key name for source time series
+// aggType - AggregationType
+// bucketSizeMSec - Time bucket for aggregation in milliseconds
+// destinationKey - key name for destination time series
+func (client *Client) CreateRule(sourceKey string, aggType AggregationType, bucketSizeMSec uint, destinationKey string) (err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
-	info, err := conn.Do("TS.RANGE", key, strconv.FormatInt(fromTimestamp, 10), strconv.FormatInt(toTimestamp, 10))
-	if err != nil {
-		return nil, err
-	}
-	dataPoints, err = ParseDataPoints(info)
-	return dataPoints, err
+	_, err = conn.Do("TS.CREATERULE", sourceKey, destinationKey, "AGGREGATION", aggType, bucketSizeMSec)
+	return err
+}
+
+// DeleteRule - delete a compaction rule
+// args:
+// sourceKey - key name for source time series
+// destinationKey - key name for destination time series
+func (client *Client) DeleteRule(sourceKey string, destinationKey string) (err error) {
+	conn := client.Pool.Get()
+	defer conn.Close()
+	_, err = conn.Do("TS.DELETERULE", sourceKey, destinationKey)
+	return err
+}
+
+// Range - ranged query
+// args:
+// key - time series key name
+// fromTimestamp - start of range. You can use TimeRangeMinimum to express the minimum possible timestamp.
+// toTimestamp - end of range. You can use TimeRangeFull or TimeRangeMaximum to express the maximum possible timestamp.
+// Deprecated: This function has been deprecated, use RangeWithOptions instead
+func (client *Client) Range(key string, fromTimestamp int64, toTimestamp int64) (dataPoints []DataPoint, err error) {
+	return client.RangeWithOptions(key, fromTimestamp, toTimestamp, DefaultRangeOptions)
+
 }
 
 // AggRange - aggregation over a ranged query
 // args:
 // key - time series key name
-// fromTimestamp - start of range
-// toTimestamp - end of range
+// fromTimestamp - start of range. You can use TimeRangeMinimum to express the minimum possible timestamp.
+// toTimestamp - end of range. You can use TimeRangeFull or TimeRangeMaximum to express the maximum possible timestamp.
 // aggType - aggregation type
 // bucketSizeSec - time bucket for aggregation
+// Deprecated: This function has been deprecated, use RangeWithOptions instead
 func (client *Client) AggRange(key string, fromTimestamp int64, toTimestamp int64, aggType AggregationType,
 	bucketSizeSec int) (dataPoints []DataPoint, err error) {
+	rangeOptions := NewRangeOptions()
+	rangeOptions = rangeOptions.SetAggregation(aggType, bucketSizeSec)
+	return client.RangeWithOptions(key, fromTimestamp, toTimestamp, *rangeOptions)
+}
+
+// RangeWithOptions - Query a timestamp range on a specific time-series
+// args:
+// key - time-series key name
+// fromTimestamp - start of range. You can use TimeRangeMinimum to express the minimum possible timestamp.
+// toTimestamp - end of range. You can use TimeRangeFull or TimeRangeMaximum to express the maximum possible timestamp.
+// rangeOptions - RangeOptions options. You can use the default DefaultRangeOptions
+func (client *Client) RangeWithOptions(key string, fromTimestamp int64, toTimestamp int64, rangeOptions RangeOptions) (dataPoints []DataPoint, err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
-	info, err := conn.Do("TS.RANGE", key, strconv.FormatInt(fromTimestamp, 10), strconv.FormatInt(toTimestamp, 10),
-		"AGGREGATION", aggType.String(), bucketSizeSec)
+	var reply interface{}
+	args := createRangeCmdArguments(key, fromTimestamp, toTimestamp, rangeOptions)
+	reply, err = conn.Do("TS.RANGE", args...)
 	if err != nil {
-		return nil, err
+		return
 	}
-	dataPoints, err = ParseDataPoints(info)
-	return dataPoints, err
+	dataPoints, err = ParseDataPoints(reply)
+	return
 }
 
 // AggMultiRange - Query a timestamp range across multiple time-series by filters.
 // args:
-// fromTimestamp - start of range
-// toTimestamp - end of range
+// fromTimestamp - start of range. You can use TimeRangeMinimum to express the minimum possible timestamp.
+// toTimestamp - end of range. You can use TimeRangeFull or TimeRangeMaximum to express the maximum possible timestamp.
 // aggType - aggregation type
 // bucketSizeSec - time bucket for aggregation
 // filters - list of filters e.g. "a=bb", "b!=aa"
 // Deprecated: This function has been deprecated, use MultiRangeWithOptions instead
 func (client *Client) AggMultiRange(fromTimestamp int64, toTimestamp int64, aggType AggregationType,
 	bucketSizeSec int, filters ...string) (ranges []Range, err error) {
-	conn := client.Pool.Get()
-	defer conn.Close()
-
-	args := []interface{}{strconv.FormatInt(fromTimestamp, 10), strconv.FormatInt(toTimestamp, 10),
-		"AGGREGATION", aggType.String(), bucketSizeSec, "FILTER"}
-
-	for _, filter := range filters {
-		args = append(args, filter)
-	}
-
-	info, err := conn.Do("TS.MRANGE", args...)
-	if err != nil {
-		return nil, err
-	}
-	ranges, err = ParseRanges(info)
-	return ranges, err
+	mrangeOptions := NewMultiRangeOptions()
+	mrangeOptions = mrangeOptions.SetAggregation(aggType, bucketSizeSec)
+	return client.MultiRangeWithOptions(fromTimestamp, toTimestamp, *mrangeOptions, filters...)
 }
 
 // MultiRangeWithOptions - Query a timestamp range across multiple time-series by filters.
 // args:
-// fromTimestamp - start of range
-// toTimestamp - end of range
+// fromTimestamp - start of range. You can use TimeRangeMinimum to express the minimum possible timestamp.
+// toTimestamp - end of range. You can use TimeRangeFull or TimeRangeMaximum to express the maximum possible timestamp.
 // mrangeOptions - MultiRangeOptions options. You can use the default DefaultMultiRangeOptions
 // filters - list of filters e.g. "a=bb", "b!=aa"
 func (client *Client) MultiRangeWithOptions(fromTimestamp int64, toTimestamp int64, mrangeOptions MultiRangeOptions, filters ...string) (ranges []Range, err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
-
+	var reply interface{}
 	args := createMultiRangeCmdArguments(fromTimestamp, toTimestamp, mrangeOptions, filters)
-
-	info, err := conn.Do("TS.MRANGE", args...)
+	reply, err = conn.Do("TS.MRANGE", args...)
 	if err != nil {
 		return
 	}
-	ranges, err = ParseRanges(info)
+	ranges, err = ParseRanges(reply)
 	return
 }
 
-func createMultiRangeCmdArguments(fromTimestamp int64, toTimestamp int64, mrangeOptions MultiRangeOptions, filters []string) []interface{} {
-	args := []interface{}{strconv.FormatInt(fromTimestamp, 10), strconv.FormatInt(toTimestamp, 10)}
-	if mrangeOptions.AggType != -1 {
-		args = append(args, "AGGREGATION", mrangeOptions.AggType.String(), strconv.Itoa(mrangeOptions.TimeBucket))
+// Get - Get the last sample of a time-series.
+// args:
+// key - time-series key name
+func (client *Client) Get(key string) (dataPoint *DataPoint,
+	err error) {
+	conn := client.Pool.Get()
+	defer conn.Close()
+	resp, err := conn.Do("TS.GET", key)
+	if err != nil {
+		return nil, err
 	}
-	if mrangeOptions.Count != -1 {
-		args = append(args, "COUNT", strconv.FormatInt(mrangeOptions.Count, 10))
+	dataPoint, err = ParseDataPoint(resp)
+	return
+}
+
+// MultiGet - Get the last sample across multiple time-series, matching the specific filters.
+// args:
+// filters - list of filters e.g. "a=bb", "b!=aa"
+func (client *Client) MultiGet(filters ...string) (ranges []Range,
+	err error) {
+	conn := client.Pool.Get()
+	defer conn.Close()
+	var reply interface{}
+	if len(filters) == 0 {
+		return
 	}
-	if mrangeOptions.WithLabels == true {
-		args = append(args, "WITHLABELS")
-	}
-	args = append(args, "FILTER")
+	args := []interface{}{"FILTER"}
 	for _, filter := range filters {
 		args = append(args, filter)
 	}
-	return args
+
+	reply, err = conn.Do("TS.MGET", args...)
+
+	if err != nil {
+		return
+	}
+	ranges, err = ParseRangesSingleDataPoint(reply)
+	return
+}
+
+// Returns information and statistics on the time-series.
+// args:
+// key - time-series key name
+func (client *Client) Info(key string) (res KeyInfo, err error) {
+	conn := client.Pool.Get()
+	defer conn.Close()
+	res, err = ParseInfo(conn.Do("TS.INFO", key))
+	return res, err
 }
