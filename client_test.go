@@ -189,12 +189,20 @@ func TestClient_AggRange(t *testing.T) {
 	value1 := 5.0
 	value2 := 6.0
 
+	expectedResponse := []DataPoint{{ int64(0), 1.0 },{ int64(10), 1.0 },}
+
 	client.Add(key, ts1, value1)
 	client.Add(key, ts2, value2)
 
 	dataPoints, err := client.AggRange(key, ts1, ts2, CountAggregation, 10)
 	assert.Equal(t, nil, err)
-	assert.Equal(t, 2.0, dataPoints[0].Value)
+	assert.Equal(t, expectedResponse,dataPoints )
+
+	// ensure zero-based index produces same response
+	dataPointsZeroBased, err := client.AggRange(key, 0, ts2, CountAggregation, 10)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, dataPoints, dataPointsZeroBased )
+
 }
 
 func TestClient_AggMultiRange(t *testing.T) {
