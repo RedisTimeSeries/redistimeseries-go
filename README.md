@@ -5,9 +5,9 @@
 [![GoDoc](https://godoc.org/github.com/RedisTimeSeries/redistimeseries-go?status.svg)](https://godoc.org/github.com/RedisTimeSeries/redistimeseries-go)
 
 
-# redis-timeseries-go
+# redistimeseries-go
 
-Go client for RedisTimeSeries (https://github.com/RedisLabsModules/redis-timeseries), based on redigo.
+Go client for RedisTimeSeries (https://github.com/RedisTimeSeries/redistimeseries), based on redigo.
 
 Client and ConnPool based on the work of dvirsky and mnunberg on https://github.com/RediSearch/redisearch-go
 
