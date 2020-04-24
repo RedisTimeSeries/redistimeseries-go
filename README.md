@@ -6,6 +6,8 @@
 
 
 # redistimeseries-go
+[![Forum](https://img.shields.io/badge/Forum-RedisTimeSeries-blue)](https://forum.redislabs.com/c/modules/redistimeseries)
+[![Gitter](https://badges.gitter.im/RedisLabs/RedisTimeSeries.svg)](https://gitter.im/RedisLabs/RedisTimeSeries?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
 Go client for RedisTimeSeries (https://github.com/RedisTimeSeries/redistimeseries), based on redigo.
 
