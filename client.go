@@ -52,6 +52,19 @@ func (client *Client) CreateKeyWithOptions(key string, options CreateOptions) (e
 	return err
 }
 
+// Update the retention, labels of an existing key. The parameters are the same as TS.CREATE.
+func (client *Client) AlterKeyWithOptions(key string, options CreateOptions) (err error) {
+	conn := client.Pool.Get()
+	defer conn.Close()
+
+	args := []interface{}{key}
+	args, err = options.Serialize(args)
+	if err != nil {
+		return
+	}
+	_, err = conn.Do("TS.ALTER", args...)
+	return err
+}
 
 // Add - Append (or create and append) a new sample to the series
 // args:
@@ -274,4 +287,20 @@ func (client *Client) Info(key string) (res KeyInfo, err error) {
 	defer conn.Close()
 	res, err = ParseInfo(conn.Do("TS.INFO", key))
 	return res, err
+}
+
+// Get all the keys matching the filter list.
+func (client *Client) QueryIndex(filters ...string) (keys []string, err error) {
+	conn := client.Pool.Get()
+	defer conn.Close()
+
+	if len(filters) == 0 {
+		return
+	}
+
+	args := redis.Args{}
+	for _, filter := range filters {
+		args = args.Add(filter)
+	}
+	return redis.Strings(conn.Do("TS.QUERYINDEX", args...))
 }
