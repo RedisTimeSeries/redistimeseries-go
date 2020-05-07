@@ -3,6 +3,7 @@ package redis_timeseries_go
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"github.com/gomodule/redigo/redis"
 )
 
@@ -112,11 +113,15 @@ func ParseDataPoint(rawDataPoint interface{}) (dataPoint *DataPoint, err error) 
 	if err != nil {
 		return
 	}
-	value, err := redis.Float64(iValues[1], nil)
+	value, err := redis.String(iValues[1], nil)
 	if err != nil {
 		return
 	}
-	dataPoint = NewDataPoint(timestamp, value)
+	float, err := strconv.ParseFloat(value, 64)
+	if err != nil {
+		return
+	}
+	dataPoint = NewDataPoint(timestamp, float)
 	return
 }
 

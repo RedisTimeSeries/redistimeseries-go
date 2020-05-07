@@ -1,13 +1,15 @@
 [![license](https://img.shields.io/github/license/RedisTimeSeries/RedisTimeSeries-go.svg)](https://github.com/RedisTimeSeries/RedisTimeSeries-go)
-[![CircleCI](https://circleci.com/gh/RedisTimeSeries/redistimeseries-go.svg?style=svg&circle-token=022ed6c86563cbb7d19ff4fd3ca6eab9053603f2)](https://circleci.com/gh/RedisTimeSeries/redistimeseries-go)
+[![CircleCI](https://circleci.com/gh/RedisTimeSeries/redistimeseries-go.svg?style=svg)](https://circleci.com/gh/RedisTimeSeries/redistimeseries-go)
 [![GitHub issues](https://img.shields.io/github/release/RedisTimeSeries/redistimeseries-go.svg)](https://github.com/RedisTimeSeries/redistimeseries-go/releases/latest)
 [![Codecov](https://codecov.io/gh/RedisTimeSeries/redistimeseries-go/branch/master/graph/badge.svg)](https://codecov.io/gh/RedisTimeSeries/redistimeseries-go)
 [![GoDoc](https://godoc.org/github.com/RedisTimeSeries/redistimeseries-go?status.svg)](https://godoc.org/github.com/RedisTimeSeries/redistimeseries-go)
 
 
-# redis-timeseries-go
+# redistimeseries-go
+[![Forum](https://img.shields.io/badge/Forum-RedisTimeSeries-blue)](https://forum.redislabs.com/c/modules/redistimeseries)
+[![Gitter](https://badges.gitter.im/RedisLabs/RedisTimeSeries.svg)](https://gitter.im/RedisLabs/RedisTimeSeries?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
-Go client for RedisTimeSeries (https://github.com/RedisLabsModules/redis-timeseries), based on redigo.
+Go client for RedisTimeSeries (https://github.com/RedisTimeSeries/redistimeseries), based on redigo.
 
 Client and ConnPool based on the work of dvirsky and mnunberg on https://github.com/RediSearch/redisearch-go
 
