@@ -10,18 +10,23 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createClient() *Client {
-	valueh, exists := os.LookupEnv("REDISTIMESERIES_TEST_HOST")
+func getTestConnectionDetails() (string, string) {
+	value, exists := os.LookupEnv("REDISTIMESERIES_TEST_HOST")
 	host := "localhost:6379"
-	if exists && valueh != "" {
-		host = valueh
+	password := ""
+	valuePassword, existsPassword := os.LookupEnv("REDISTIMESERIES_TEST_PASSWORD")
+	if exists && value != "" {
+		host = value
 	}
-	valuep, exists := os.LookupEnv("REDISTIMESERIES_TEST_PASSWORD")
-	password := "SUPERSECRET"
+	if existsPassword && valuePassword != "" {
+		password = valuePassword
+	}
+	return host, password
+}
+
+func createClient() *Client {
+	host, password := getTestConnectionDetails()
 	var ptr *string = nil
-	if exists {
-		password = valuep
-	}
 	if len(password) > 0 {
 		ptr = MakeStringPtr(password)
 	}
@@ -189,19 +194,19 @@ func TestClient_AggRange(t *testing.T) {
 	value1 := 5.0
 	value2 := 6.0
 
-	expectedResponse := []DataPoint{{ int64(0), 1.0 },{ int64(10), 1.0 },}
+	expectedResponse := []DataPoint{{int64(0), 1.0}, {int64(10), 1.0}}
 
 	client.Add(key, ts1, value1)
 	client.Add(key, ts2, value2)
 
 	dataPoints, err := client.AggRange(key, ts1, ts2, CountAggregation, 10)
 	assert.Equal(t, nil, err)
-	assert.Equal(t, expectedResponse,dataPoints )
+	assert.Equal(t, expectedResponse, dataPoints)
 
 	// ensure zero-based index produces same response
 	dataPointsZeroBased, err := client.AggRange(key, 0, ts2, CountAggregation, 10)
 	assert.Equal(t, nil, err)
-	assert.Equal(t, dataPoints, dataPointsZeroBased )
+	assert.Equal(t, dataPoints, dataPointsZeroBased)
 
 }
 
@@ -426,4 +431,18 @@ func TestClient_Range(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestNewClientFromPool(t *testing.T) {
+	host, password := getTestConnectionDetails()
+	pool := &redis.Pool{Dial: func() (redis.Conn, error) {
+		return redis.Dial("tcp", host, redis.DialPassword(password))
+	}, MaxIdle: maxConns}
+	client1 := NewClientFromPool(pool, "cs-client-1")
+	client2 := NewClientFromPool(pool, "ts-client-2")
+	assert.Equal(t, client1.Pool, client2.Pool)
+	err1 := client1.Pool.Close()
+	err2 := client2.Pool.Close()
+	assert.Nil(t, err1)
+	assert.Nil(t, err2)
 }
