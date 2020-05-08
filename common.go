@@ -68,6 +68,11 @@ type DataPoint struct {
 	Value     float64
 }
 
+type Sample struct {
+	Key       string
+	DataPoint DataPoint
+}
+
 func NewDataPoint(timestamp int64, value float64) *DataPoint {
 	return &DataPoint{Timestamp: timestamp, Value: value}
 }

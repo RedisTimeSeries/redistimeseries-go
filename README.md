@@ -63,10 +63,10 @@ func main() {
 | Command | Recommended API and godoc  |
 | :---          |  ----: |
 | [TS.CREATE](https://oss.redislabs.com/redistimeseries/commands/#tscreate) |   [CreateKeyWithOptions](https://godoc.org/github.com/RedisTimeSeries/redistimeseries-go#Client.CreateKeyWithOptions)          |
-| [TS.ALTER](https://oss.redislabs.com/redistimeseries/commands/#tsalter) |   N/A          |
+| [TS.ALTER](https://oss.redislabs.com/redistimeseries/commands/#tsalter) |   [AlterKeyWithOptions](https://godoc.org/github.com/RedisTimeSeries/redistimeseries-go#Client.AlterKeyWithOptions)          |
 | [TS.ADD](https://oss.redislabs.com/redistimeseries/commands/#tsadd) |   <ul><li>[Add](https://godoc.org/github.com/RedisTimeSeries/redistimeseries-go#Client.Add)</li><li>[AddAutoTs](https://godoc.org/github.com/RedisTimeSeries/redistimeseries-go#Client.AddAutoTs)</li><li>[AddWithOptions](https://godoc.org/github.com/RedisTimeSeries/redistimeseries-go#Client.AddWithOptions)</li><li>[AddAutoTsWithOptions](https://godoc.org/github.com/RedisTimeSeries/redistimeseries-go#Client.AddWithOptions)</li> </ul>          |
-| [TS.MADD](https://oss.redislabs.com/redistimeseries/commands/#tsmadd) |    N/A |
-| [TS.INCRBY/TS.DECRBY](https://oss.redislabs.com/redistimeseries/commands/#tsincrbytsdecrby) |    N/A         |
+| [TS.MADD](https://oss.redislabs.com/redistimeseries/commands/#tsmadd) |    [MultiAdd](https://godoc.org/github.com/RedisTimeSeries/redistimeseries-go#Client.MultiAdd) |
+| [TS.INCRBY/TS.DECRBY](https://oss.redislabs.com/redistimeseries/commands/#tsincrbytsdecrby) |    [IncrBy](https://godoc.org/github.com/RedisTimeSeries/redistimeseries-go#Client.IncrBy) / [DecrBy](https://godoc.org/github.com/RedisTimeSeries/redistimeseries-go#Client.DecrBy)         |
 | [TS.CREATERULE](https://oss.redislabs.com/redistimeseries/commands/#tscreaterule) |   [CreateRule](https://godoc.org/github.com/RedisTimeSeries/redistimeseries-go#Client.CreateRule)          |
 | [TS.DELETERULE](https://oss.redislabs.com/redistimeseries/commands/#tsdeleterule) |   [DeleteRule](https://godoc.org/github.com/RedisTimeSeries/redistimeseries-go#Client.DeleteRule)          |
 | [TS.RANGE](https://oss.redislabs.com/redistimeseries/commands/#tsrange) |   [RangeWithOptions](https://godoc.org/github.com/RedisTimeSeries/redistimeseries-go#Client.RangeWithOptions)          |
@@ -74,7 +74,7 @@ func main() {
 | [TS.GET](https://oss.redislabs.com/redistimeseries/commands/#tsget) |   [Get](https://godoc.org/github.com/RedisTimeSeries/redistimeseries-go#Client.Get)          |
 | [TS.MGET](https://oss.redislabs.com/redistimeseries/commands/#tsmget) |   [MultiGet](https://godoc.org/github.com/RedisTimeSeries/redistimeseries-go#Client.MultiGet)          |
 | [TS.INFO](https://oss.redislabs.com/redistimeseries/commands/#tsinfo) |   [Info](https://godoc.org/github.com/RedisTimeSeries/redistimeseries-go#Client.Info)          |
-| [TS.QUERYINDEX](https://oss.redislabs.com/redistimeseries/commands/#tsqueryindex) |    N/A |
+| [TS.QUERYINDEX](https://oss.redislabs.com/redistimeseries/commands/#tsqueryindex) |    [QueryIndex](https://godoc.org/github.com/RedisTimeSeries/redistimeseries-go#Client.QueryIndex) |
 
 
 ## License
