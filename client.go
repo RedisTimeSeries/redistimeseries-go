@@ -340,9 +340,13 @@ func AddCounterArgs(key string, timestamp int64, value float64, options CreateOp
 }
 
 // Append new samples to a list of series.
-func (client *Client) MultiAdd(samples ...Sample) ([]interface{}, error) {
+func (client *Client) MultiAdd(samples ...Sample) (timestamps []interface{}, err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
+
+	if len(samples) == 0 {
+		return
+	}
 
 	args := redis.Args{}
 	for _, sample := range samples {

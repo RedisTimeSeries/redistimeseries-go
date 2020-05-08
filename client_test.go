@@ -495,4 +495,8 @@ func TestMultiAdd(t *testing.T) {
 	v, ok := values[1].(error)
 	assert.NotNil(t, v)
 	assert.True(t, ok)
+
+	values, err = client.MultiAdd()
+	assert.Nil(t, values)
+	assert.Nil(t, err)
 }
