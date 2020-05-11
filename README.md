@@ -24,7 +24,7 @@ $ go get github.com/RedisTimeSeries/redistimeseries-go
 A simple test suite is provided, and can be run with:
 
 ```sh
-$ REDISTIMESERIES_TEST_PASSWORD="" go test
+$ go test
 ```
 
 The tests expect a Redis server with the RedisTimeSeries module loaded to be available at localhost:6379

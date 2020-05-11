@@ -29,6 +29,16 @@ func NewClient(addr, name string, authPass *string) *Client {
 	return ret
 }
 
+
+// NewClientFromPool creates a new Client with the given pool and client name
+func NewClientFromPool(pool *redis.Pool, name string) *Client {
+	ret := &Client{
+		Pool: pool,
+		Name: name,
+	}
+	return ret
+}
+
 // CreateKey create a new time-series
 // Deprecated: This function has been deprecated, use CreateKeyWithOptions instead
 func (client *Client) CreateKey(key string, retentionTime time.Duration) (err error) {

@@ -10,18 +10,23 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createClient() *Client {
-	valueh, exists := os.LookupEnv("REDISTIMESERIES_TEST_HOST")
+func getTestConnectionDetails() (string, string) {
+	value, exists := os.LookupEnv("REDISTIMESERIES_TEST_HOST")
 	host := "localhost:6379"
-	if exists && valueh != "" {
-		host = valueh
+	password := ""
+	valuePassword, existsPassword := os.LookupEnv("REDISTIMESERIES_TEST_PASSWORD")
+	if exists && value != "" {
+		host = value
 	}
-	valuep, exists := os.LookupEnv("REDISTIMESERIES_TEST_PASSWORD")
-	password := "SUPERSECRET"
+	if existsPassword && valuePassword != "" {
+		password = valuePassword
+	}
+	return host, password
+}
+
+func createClient() *Client {
+	host, password := getTestConnectionDetails()
 	var ptr *string = nil
-	if exists {
-		password = valuep
-	}
 	if len(password) > 0 {
 		ptr = MakeStringPtr(password)
 	}
@@ -459,6 +464,19 @@ func TestClient_Range(t *testing.T) {
 	}
 }
 
+func TestNewClientFromPool(t *testing.T) {
+	host, password := getTestConnectionDetails()
+	pool := &redis.Pool{Dial: func() (redis.Conn, error) {
+		return redis.Dial("tcp", host, redis.DialPassword(password))
+	}, MaxIdle: maxConns}
+	client1 := NewClientFromPool(pool, "cs-client-1")
+	client2 := NewClientFromPool(pool, "ts-client-2")
+	assert.Equal(t, client1.Pool, client2.Pool)
+	err1 := client1.Pool.Close()
+	err2 := client2.Pool.Close()
+	assert.Nil(t, err1)
+	assert.Nil(t, err2)
+}
 func TestIncrDecrBy(t *testing.T) {
 	client.FlushAll()
 	labels := map[string]string{

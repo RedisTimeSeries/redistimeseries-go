@@ -1,6 +1,7 @@
 package redis_timeseries_go
 
 import (
+	"fmt"
 	"math/rand"
 	"sync"
 	"time"
@@ -10,6 +11,7 @@ import (
 
 type ConnPool interface {
 	Get() redis.Conn
+	Close() error
 }
 
 type SingleHostPool struct {
@@ -78,4 +80,22 @@ func testOnBorrow(c redis.Conn, t time.Time) (err error) {
 		_, err = c.Do("PING")
 	}
 	return err
+}
+
+
+func (p *MultiHostPool) Close() (err error) {
+	p.Lock()
+	defer p.Unlock()
+	for host, pool := range p.pools {
+		poolErr := pool.Close()
+		//preserve pool error if not nil but continue
+		if poolErr != nil {
+			if err == nil {
+				err = fmt.Errorf("Error closing pool for host %s. Got %v.", host, poolErr)
+			} else {
+				err = fmt.Errorf("%v Error closing pool for host %s. Got %v.", err, host, poolErr)
+			}
+		}
+	}
+	return
 }

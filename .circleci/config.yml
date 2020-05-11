@@ -3,23 +3,16 @@
 # Check https://circleci.com/docs/2.0/language-go/ for more details
 version: 2
 jobs:
-  build:
+  build: # test with redistimeseries:edge
     docker:
-      # specify the version
-      - image: circleci/golang:1.12
-
+      - image: circleci/golang:1.13
       - image: redislabs/redistimeseries:edge
-        command: ['--requirepass', 'SUPERSECRET', '--loadmodule', '/usr/lib/redis/modules/redistimeseries.so', 'MAX_SAMPLE_PER_CHUNK', '256']
-        port: 6379:6379
 
     working_directory: /go/src/github.com/RedisTimeSeries/redistimeseries-go
     steps:
       - checkout
-      - run: go get -v -t -d ./...
-
-      #run tests with coverage
-      - run: go test -v -race -coverprofile=coverage.txt -covermode=atomic
-      - run: go tool cover -func=coverage.txt
+      - run: make get
+      - run: make coverage
       - run: bash <(curl -s https://codecov.io/bash) -t ${CODECOV_TOKEN}
 
 workflows:
