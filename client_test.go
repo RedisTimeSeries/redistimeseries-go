@@ -62,6 +62,37 @@ func TestCreateKey(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
+func TestAlterKey(t *testing.T) {
+	client.FlushAll()
+	labels := map[string]string{
+		"cpu":     "cpu1",
+		"country": "IT",
+	}
+	err := client.AlterKeyWithOptions("test_AlterKey", CreateOptions{RetentionMSecs: defaultDuration, Labels: labels})
+	assert.NotNil(t, err)
+	err = client.CreateKeyWithOptions("test_AlterKey", CreateOptions{RetentionMSecs: defaultDuration, Labels: labels})
+	assert.Nil(t, err)
+	err = client.AlterKeyWithOptions("test_AlterKey", CreateOptions{RetentionMSecs: defaultDuration, Labels: labels})
+	assert.Nil(t, err)
+}
+
+func TestQueryIndex(t *testing.T) {
+	client.FlushAll()
+	labels := map[string]string{
+		"sensor_id": "3",
+		"area_id":   "32",
+	}
+
+	_, err := client.AddWithOptions("test_QueryIndex", 1, 18.7, CreateOptions{Uncompressed: false, Labels: labels})
+	assert.Nil(t, err)
+	keys, err := client.QueryIndex("sensor_id=3", "area_id=32")
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(keys))
+	assert.Equal(t, "test_QueryIndex", keys[0])
+	keys, err = client.QueryIndex("sensor_id=2")
+	assert.Equal(t, 0, len(keys))
+}
+
 func TestCreateUncompressedKey(t *testing.T) {
 	client.FlushAll()
 	compressedKey := "test_Compressed"
@@ -445,4 +476,45 @@ func TestNewClientFromPool(t *testing.T) {
 	err2 := client2.Pool.Close()
 	assert.Nil(t, err1)
 	assert.Nil(t, err2)
+}
+func TestIncrDecrBy(t *testing.T) {
+	client.FlushAll()
+	labels := map[string]string{
+		"sensor_id": "3",
+		"area_id":   "32",
+	}
+
+	currentTimestamp := time.Now().UnixNano() / 1e6
+	timestamp, err := client.IncrBy("Test:IncrDecrBy", currentTimestamp, 13, CreateOptions{Uncompressed: false, Labels: labels})
+	assert.Nil(t, err)
+	assert.Equal(t, currentTimestamp, timestamp)
+
+	timestamp, err = client.DecrBy("Test:IncrDecrBy", currentTimestamp+1, 14, CreateOptions{Uncompressed: false, Labels: labels})
+	assert.Nil(t, err)
+	assert.Equal(t, currentTimestamp+1, timestamp)
+}
+
+func TestMultiAdd(t *testing.T) {
+	client.FlushAll()
+
+	currentTimestamp := time.Now().UnixNano() / 1e6
+	_, err := client.AddWithOptions("test:MultiAdd", currentTimestamp, 18.7, CreateOptions{Uncompressed: false})
+	values, err := client.MultiAdd(Sample{Key: "test:MultiAdd", DataPoint: DataPoint{Timestamp: currentTimestamp + 1, Value: 14}},
+		Sample{Key: "test:MultiAdd", DataPoint: DataPoint{Timestamp: currentTimestamp + 2, Value: 15}})
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(values))
+	assert.Equal(t, currentTimestamp+1, values[0])
+	assert.Equal(t, currentTimestamp+2, values[1])
+
+	values, err = client.MultiAdd(Sample{Key: "test:MultiAdd", DataPoint: DataPoint{Timestamp: currentTimestamp + 3, Value: 14}},
+		Sample{Key: "test:MultiAdd:notExit", DataPoint: DataPoint{Timestamp: currentTimestamp + 4, Value: 14}})
+	assert.Equal(t, 2, len(values))
+	assert.Equal(t, currentTimestamp+3, values[0])
+	v, ok := values[1].(error)
+	assert.NotNil(t, v)
+	assert.True(t, ok)
+
+	values, err = client.MultiAdd()
+	assert.Nil(t, values)
+	assert.Nil(t, err)
 }

@@ -62,6 +62,19 @@ func (client *Client) CreateKeyWithOptions(key string, options CreateOptions) (e
 	return err
 }
 
+// Update the retention, labels of an existing key. The parameters are the same as TS.CREATE.
+func (client *Client) AlterKeyWithOptions(key string, options CreateOptions) (err error) {
+	conn := client.Pool.Get()
+	defer conn.Close()
+
+	args := []interface{}{key}
+	args, err = options.Serialize(args)
+	if err != nil {
+		return
+	}
+	_, err = conn.Do("TS.ALTER", args...)
+	return err
+}
 
 // Add - Append (or create and append) a new sample to the series
 // args:
@@ -284,4 +297,70 @@ func (client *Client) Info(key string) (res KeyInfo, err error) {
 	defer conn.Close()
 	res, err = ParseInfo(conn.Do("TS.INFO", key))
 	return res, err
+}
+
+// Get all the keys matching the filter list.
+func (client *Client) QueryIndex(filters ...string) (keys []string, err error) {
+	conn := client.Pool.Get()
+	defer conn.Close()
+
+	if len(filters) == 0 {
+		return
+	}
+
+	args := redis.Args{}
+	for _, filter := range filters {
+		args = args.Add(filter)
+	}
+	return redis.Strings(conn.Do("TS.QUERYINDEX", args...))
+}
+
+// Creates a new sample that increments the latest sample's value
+func (client *Client) IncrBy(key string, timestamp int64, value float64, options CreateOptions) (int64, error) {
+	conn := client.Pool.Get()
+	defer conn.Close()
+
+	args, err := AddCounterArgs(key, timestamp, value, options)
+	if err != nil {
+		return -1, err
+	}
+	return redis.Int64(conn.Do("TS.INCRBY", args...))
+}
+
+// Creates a new sample that decrements the latest sample's value
+func (client *Client) DecrBy(key string, timestamp int64, value float64, options CreateOptions) (int64, error) {
+	conn := client.Pool.Get()
+	defer conn.Close()
+
+	args, err := AddCounterArgs(key, timestamp, value, options)
+	if err != nil {
+		return -1, err
+	}
+	return redis.Int64(conn.Do("TS.DECRBY", args...))
+}
+
+// Add counter args for command TS.INCRBY/TS.DECRBY
+func AddCounterArgs(key string, timestamp int64, value float64, options CreateOptions) (redis.Args, error) {
+	args := redis.Args{key, value}
+	if timestamp > 0 {
+		args = args.Add("TIMESTAMP", timestamp)
+	}
+
+	return options.Serialize(args)
+}
+
+// Append new samples to a list of series.
+func (client *Client) MultiAdd(samples ...Sample) (timestamps []interface{}, err error) {
+	conn := client.Pool.Get()
+	defer conn.Close()
+
+	if len(samples) == 0 {
+		return
+	}
+
+	args := redis.Args{}
+	for _, sample := range samples {
+		args = args.Add(sample.Key, sample.DataPoint.Timestamp, sample.DataPoint.Value)
+	}
+	return redis.Values(conn.Do("TS.MADD", args...))
 }
