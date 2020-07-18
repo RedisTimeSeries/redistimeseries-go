@@ -3,8 +3,8 @@ package redis_timeseries_go
 import (
 	"errors"
 	"fmt"
-	"strconv"
 	"github.com/gomodule/redigo/redis"
+	"strconv"
 )
 
 func toAggregationType(aggType interface{}) (aggTypeStr AggregationType, err error) {

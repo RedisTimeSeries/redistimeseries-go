@@ -29,7 +29,6 @@ func NewClient(addr, name string, authPass *string) *Client {
 	return ret
 }
 
-
 // NewClientFromPool creates a new Client with the given pool and client name
 func NewClientFromPool(pool *redis.Pool, name string) *Client {
 	ret := &Client{
@@ -275,13 +274,25 @@ func (client *Client) MultiGet(filters ...string) (ranges []Range,
 	if len(filters) == 0 {
 		return
 	}
-	args := []interface{}{"FILTER"}
-	for _, filter := range filters {
-		args = append(args, filter)
-	}
-
+	args := createMultiGetCmdArguments(DefaultMultiGetOptions, filters)
 	reply, err = conn.Do("TS.MGET", args...)
+	if err != nil {
+		return
+	}
+	ranges, err = ParseRangesSingleDataPoint(reply)
+	return
+}
 
+// MultiGetWithOptions - Get the last samples matching the specific filters.
+// args:
+// multiGetOptions - MultiGetOptions options. You can use the default DefaultMultiGetOptions
+// filters - list of filters e.g. "a=bb", "b!=aa"
+func (client *Client) MultiGetWithOptions(multiGetOptions MultiGetOptions, filters ...string) (ranges []Range, err error) {
+	conn := client.Pool.Get()
+	defer conn.Close()
+	var reply interface{}
+	args := createMultiGetCmdArguments(multiGetOptions, filters)
+	reply, err = conn.Do("TS.MGET", args...)
 	if err != nil {
 		return
 	}

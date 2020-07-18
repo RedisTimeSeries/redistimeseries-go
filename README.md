@@ -69,10 +69,12 @@ func main() {
 | [TS.INCRBY/TS.DECRBY](https://oss.redislabs.com/redistimeseries/commands/#tsincrbytsdecrby) |    [IncrBy](https://godoc.org/github.com/RedisTimeSeries/redistimeseries-go#Client.IncrBy) / [DecrBy](https://godoc.org/github.com/RedisTimeSeries/redistimeseries-go#Client.DecrBy)         |
 | [TS.CREATERULE](https://oss.redislabs.com/redistimeseries/commands/#tscreaterule) |   [CreateRule](https://godoc.org/github.com/RedisTimeSeries/redistimeseries-go#Client.CreateRule)          |
 | [TS.DELETERULE](https://oss.redislabs.com/redistimeseries/commands/#tsdeleterule) |   [DeleteRule](https://godoc.org/github.com/RedisTimeSeries/redistimeseries-go#Client.DeleteRule)          |
-| [TS.RANGE](https://oss.redislabs.com/redistimeseries/commands/#tsrange) |   [RangeWithOptions](https://godoc.org/github.com/RedisTimeSeries/redistimeseries-go#Client.RangeWithOptions)          |
-| [TS.MRANGE](https://oss.redislabs.com/redistimeseries/commands/#tsmrange) |   [MultiRangeWithOptions](https://godoc.org/github.com/RedisTimeSeries/redistimeseries-go#Client.MultiRangeWithOptions)          |
+| [TS.RANGE](https://oss.redislabs.com/redistimeseries/commands/#tsrangetsrevrange) |   [RangeWithOptions](https://godoc.org/github.com/RedisTimeSeries/redistimeseries-go#Client.RangeWithOptions)          |
+| [TS.REVRANGE](https://oss.redislabs.com/redistimeseries/commands/#tsrangetsrevrange) |   N/A  |
+| [TS.MRANGE](https://oss.redislabs.com/redistimeseries/commands/#tsmrangetsmrevrange) |   [MultiRangeWithOptions](https://godoc.org/github.com/RedisTimeSeries/redistimeseries-go#Client.MultiRangeWithOptions)          |
+| [TS.MREVRANGE](https://oss.redislabs.com/redistimeseries/commands/#tsmrangetsmrevrange) |   N/A         |
 | [TS.GET](https://oss.redislabs.com/redistimeseries/commands/#tsget) |   [Get](https://godoc.org/github.com/RedisTimeSeries/redistimeseries-go#Client.Get)          |
-| [TS.MGET](https://oss.redislabs.com/redistimeseries/commands/#tsmget) |   [MultiGet](https://godoc.org/github.com/RedisTimeSeries/redistimeseries-go#Client.MultiGet)          |
+| [TS.MGET](https://oss.redislabs.com/redistimeseries/commands/#tsmget) |   <ul><li>[MultiGet](https://godoc.org/github.com/RedisTimeSeries/redistimeseries-go#Client.MultiGet)</li><li> [MultiGetWithOptions](https://godoc.org/github.com/RedisTimeSeries/redistimeseries-go#Client.MultiGetWithOptions) </li> </ul>       |
 | [TS.INFO](https://oss.redislabs.com/redistimeseries/commands/#tsinfo) |   [Info](https://godoc.org/github.com/RedisTimeSeries/redistimeseries-go#Client.Info)          |
 | [TS.QUERYINDEX](https://oss.redislabs.com/redistimeseries/commands/#tsqueryindex) |    [QueryIndex](https://godoc.org/github.com/RedisTimeSeries/redistimeseries-go#Client.QueryIndex) |
 

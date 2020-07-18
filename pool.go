@@ -82,7 +82,6 @@ func testOnBorrow(c redis.Conn, t time.Time) (err error) {
 	return err
 }
 
-
 func (p *MultiHostPool) Close() (err error) {
 	p.Lock()
 	defer p.Unlock()

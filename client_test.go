@@ -416,6 +416,68 @@ func TestClient_MultiGet(t *testing.T) {
 	}
 }
 
+func TestClient_MultiGetWithOptions(t *testing.T) {
+	client.FlushAll()
+	key1 := "test_TestClient_MultiGet_key1"
+	key2 := "test_TestClient_MultiGet_key2"
+	labels1 := map[string]string{
+		"metric":  "cpu",
+		"country": "US",
+	}
+	labels2 := map[string]string{
+		"metric":  "cpu",
+		"country": "UK",
+	}
+
+	_, err := client.AddWithOptions(key1, 1, 5.0, CreateOptions{Labels: labels1})
+	if err != nil {
+		t.Errorf("TestClient_MultiGetWithOptions Add() error = %v", err)
+		return
+	}
+	_, err = client.Add(key1, 2, 15.0)
+	_, err = client.Add(key1, 3, 15.0)
+
+	_, err = client.AddWithOptions(key2, 1, 5.0, CreateOptions{Labels: labels2})
+
+	if err != nil {
+		t.Errorf("TestClient_MultiGetWithOptions Add() error = %v", err)
+		return
+	}
+
+	type fields struct {
+		Pool ConnPool
+		Name string
+	}
+	type args struct {
+		filters []string
+	}
+	tests := []struct {
+		name       string
+		fields     fields
+		args       args
+		wantRanges []Range
+		wantErr    bool
+	}{
+		{"multi key", fields{client.Pool, "test"}, args{[]string{"metric=cpu", "country=UK"}}, []Range{Range{key2, map[string]string{"country": "UK", "metric": "cpu"}, []DataPoint{DataPoint{1, 5.0}}}}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client := &Client{
+				Pool: tt.fields.Pool,
+				Name: tt.fields.Name,
+			}
+			gotRanges, err := client.MultiGetWithOptions(*NewMultiGetOptions().SetWithLabels(true), tt.args.filters...)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("MultiGet() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(gotRanges, tt.wantRanges) {
+				t.Errorf("MultiGet() gotRanges = %v, want %v", gotRanges, tt.wantRanges)
+			}
+		})
+	}
+}
+
 func TestClient_Range(t *testing.T) {
 	client.FlushAll()
 	key1 := "TestClient_Range_key1"
