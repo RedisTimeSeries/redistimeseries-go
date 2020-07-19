@@ -68,6 +68,49 @@ type DataPoint struct {
 	Value     float64
 }
 
+// FilterDataPoints returns a new slice containing all datapoints in the slice that satisfy the predicate f.
+func FilterDataPoints(vs []DataPoint, f func(DataPoint) bool) []DataPoint {
+	vsf := make([]DataPoint, 0)
+	for _, v := range vs {
+		if f(v) {
+			vsf = append(vsf, v)
+		}
+	}
+	return vsf
+}
+
+// MapDataPoints returns a new slice containing the results of applying the function f to each datapoint in the original slice.
+func MapDataPoints(vs []DataPoint, f func(DataPoint) DataPoint) []DataPoint {
+	vsm := make([]DataPoint, len(vs))
+	for i, v := range vs {
+		vsm[i] = f(v)
+	}
+	return vsm
+}
+
+// FilterRanges returns a new slice containing all ranges after applying redistimeseries.FilterDataPoints to each range DataPoints
+func FilterRanges(vs []Range, f func(DataPoint) bool) []Range {
+	vsf := make([]Range, 0)
+	for _, v := range vs {
+		out := v
+		out.DataPoints = FilterDataPoints(v.DataPoints, f)
+		vsf = append(vsf, out)
+	}
+	return vsf
+}
+
+// MapRanges returns a new slice containing all ranges after applying redistimeseries.MapDataPoints to each range DataPoints
+func MapRanges(vs []Range, f func(DataPoint) DataPoint) []Range {
+	vsf := make([]Range, 0)
+	for _, v := range vs {
+		out := v
+		out.DataPoints = MapDataPoints(v.DataPoints, f)
+		vsf = append(vsf, out)
+
+	}
+	return vsf
+}
+
 type Sample struct {
 	Key       string
 	DataPoint DataPoint
