@@ -266,21 +266,8 @@ func (client *Client) Get(key string) (dataPoint *DataPoint,
 // MultiGet - Get the last sample across multiple time-series, matching the specific filters.
 // args:
 // filters - list of filters e.g. "a=bb", "b!=aa"
-func (client *Client) MultiGet(filters ...string) (ranges []Range,
-	err error) {
-	conn := client.Pool.Get()
-	defer conn.Close()
-	var reply interface{}
-	if len(filters) == 0 {
-		return
-	}
-	args := createMultiGetCmdArguments(DefaultMultiGetOptions, filters)
-	reply, err = conn.Do("TS.MGET", args...)
-	if err != nil {
-		return
-	}
-	ranges, err = ParseRangesSingleDataPoint(reply)
-	return
+func (client *Client) MultiGet(filters ...string) (ranges []Range, err error) {
+	return client.MultiGetWithOptions(DefaultMultiGetOptions, filters...)
 }
 
 // MultiGetWithOptions - Get the last samples matching the specific filters.
@@ -291,6 +278,9 @@ func (client *Client) MultiGetWithOptions(multiGetOptions MultiGetOptions, filte
 	conn := client.Pool.Get()
 	defer conn.Close()
 	var reply interface{}
+	if len(filters) == 0 {
+		return
+	}
 	args := createMultiGetCmdArguments(multiGetOptions, filters)
 	reply, err = conn.Do("TS.MGET", args...)
 	if err != nil {
