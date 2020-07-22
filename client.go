@@ -214,6 +214,25 @@ func (client *Client) RangeWithOptions(key string, fromTimestamp int64, toTimest
 	return
 }
 
+// ReverseRangeWithOptions - Query a timestamp range on a specific time-series in reverse order
+// args:
+// key - time-series key name
+// fromTimestamp - start of range. You can use TimeRangeMinimum to express the minimum possible timestamp.
+// toTimestamp - end of range. You can use TimeRangeFull or TimeRangeMaximum to express the maximum possible timestamp.
+// rangeOptions - RangeOptions options. You can use the default DefaultRangeOptions
+func (client *Client) ReverseRangeWithOptions(key string, fromTimestamp int64, toTimestamp int64, rangeOptions RangeOptions) (dataPoints []DataPoint, err error) {
+	conn := client.Pool.Get()
+	defer conn.Close()
+	var reply interface{}
+	args := createRangeCmdArguments(key, fromTimestamp, toTimestamp, rangeOptions)
+	reply, err = conn.Do("TS.REVRANGE", args...)
+	if err != nil {
+		return
+	}
+	dataPoints, err = ParseDataPoints(reply)
+	return
+}
+
 // AggMultiRange - Query a timestamp range across multiple time-series by filters.
 // args:
 // fromTimestamp - start of range. You can use TimeRangeMinimum to express the minimum possible timestamp.
@@ -241,6 +260,25 @@ func (client *Client) MultiRangeWithOptions(fromTimestamp int64, toTimestamp int
 	var reply interface{}
 	args := createMultiRangeCmdArguments(fromTimestamp, toTimestamp, mrangeOptions, filters)
 	reply, err = conn.Do("TS.MRANGE", args...)
+	if err != nil {
+		return
+	}
+	ranges, err = ParseRanges(reply)
+	return
+}
+
+// MultiReverseRangeWithOptions - Query a timestamp range across multiple time-series by filters, in reverse direction.
+// args:
+// fromTimestamp - start of range. You can use TimeRangeMinimum to express the minimum possible timestamp.
+// toTimestamp - end of range. You can use TimeRangeFull or TimeRangeMaximum to express the maximum possible timestamp.
+// mrangeOptions - MultiRangeOptions options. You can use the default DefaultMultiRangeOptions
+// filters - list of filters e.g. "a=bb", "b!=aa"
+func (client *Client) MultiReverseRangeWithOptions(fromTimestamp int64, toTimestamp int64, mrangeOptions MultiRangeOptions, filters ...string) (ranges []Range, err error) {
+	conn := client.Pool.Get()
+	defer conn.Close()
+	var reply interface{}
+	args := createMultiRangeCmdArguments(fromTimestamp, toTimestamp, mrangeOptions, filters)
+	reply, err = conn.Do("TS.MREVRANGE", args...)
 	if err != nil {
 		return
 	}
