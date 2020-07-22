@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gomodule/redigo/redis"
+	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -579,4 +580,172 @@ func TestMultiAdd(t *testing.T) {
 	values, err = client.MultiAdd()
 	assert.Nil(t, values)
 	assert.Nil(t, err)
+}
+
+func TestClient_ReverseRangeWithOptions(t *testing.T) {
+
+	client.FlushAll()
+	key1 := "TestClient_RevRange_key1"
+	key2 := "TestClient_RevRange_key2"
+	client.CreateKeyWithOptions(key1, DefaultCreateOptions)
+	client.CreateKeyWithOptions(key2, DefaultCreateOptions)
+
+	client.Add(key1, 1, 5)
+	client.Add(key1, 2, 10)
+
+	type fields struct {
+		Pool ConnPool
+		Name string
+	}
+	type args struct {
+		key           string
+		fromTimestamp int64
+		toTimestamp   int64
+		rangeOptions  RangeOptions
+	}
+	tests := []struct {
+		name           string
+		fields         fields
+		args           args
+		wantDataPoints []DataPoint
+		wantErr        bool
+	}{
+		{"multi points", fields{client.Pool, "test"}, args{key1, 1, 2, DefaultRangeOptions}, []DataPoint{{2, 10}, {1, 5}}, false},
+		{"last point only", fields{client.Pool, "test"}, args{key1, 1, 2, *NewRangeOptions().SetCount(1)}, []DataPoint{{2, 10}}, false},
+		{"empty serie", fields{client.Pool, "test"}, args{key2, 1, 2, DefaultRangeOptions}, []DataPoint{}, false},
+		{"bad range", fields{client.Pool, "test"}, args{key2, 1, 0, DefaultRangeOptions}, []DataPoint{}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client := &Client{
+				Pool: tt.fields.Pool,
+				Name: tt.fields.Name,
+			}
+			gotDataPoints, err := client.ReverseRangeWithOptions(tt.args.key, tt.args.fromTimestamp, tt.args.toTimestamp, tt.args.rangeOptions)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ReverseRangeWithOptions() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(gotDataPoints, tt.wantDataPoints) {
+				t.Errorf("ReverseRangeWithOptions() gotDataPoints = %v, want %v", gotDataPoints, tt.wantDataPoints)
+			}
+		})
+	}
+}
+
+func TestClient_RangeWithOptions(t *testing.T) {
+
+	client.FlushAll()
+	key1 := "TestClient_RangeWithOptions_key1"
+	key2 := "TestClient_RangeWithOptions_key2"
+	client.CreateKeyWithOptions(key1, DefaultCreateOptions)
+	client.CreateKeyWithOptions(key2, DefaultCreateOptions)
+
+	client.Add(key1, 1, 5)
+	client.Add(key1, 2, 10)
+
+	type fields struct {
+		Pool ConnPool
+		Name string
+	}
+	type args struct {
+		key           string
+		fromTimestamp int64
+		toTimestamp   int64
+		rangeOptions  RangeOptions
+	}
+	tests := []struct {
+		name           string
+		fields         fields
+		args           args
+		wantDataPoints []DataPoint
+		wantErr        bool
+	}{
+		{"multi points", fields{client.Pool, "test"}, args{key1, 1, 2, DefaultRangeOptions}, []DataPoint{{1, 5}, {2, 10}}, false},
+		{"first point only", fields{client.Pool, "test"}, args{key1, 1, 2, *NewRangeOptions().SetCount(1)}, []DataPoint{{1, 5}}, false},
+		{"empty serie", fields{client.Pool, "test"}, args{key2, 1, 2, DefaultRangeOptions}, []DataPoint{}, false},
+		{"bad range", fields{client.Pool, "test"}, args{key2, 1, 0, DefaultRangeOptions}, []DataPoint{}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client := &Client{
+				Pool: tt.fields.Pool,
+				Name: tt.fields.Name,
+			}
+			gotDataPoints, err := client.RangeWithOptions(tt.args.key, tt.args.fromTimestamp, tt.args.toTimestamp, tt.args.rangeOptions)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("RangeWithOptions() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(gotDataPoints, tt.wantDataPoints) {
+				t.Errorf("RangeWithOptions() gotDataPoints = %v, want %v", gotDataPoints, tt.wantDataPoints)
+			}
+		})
+	}
+}
+
+func TestClient_MultiReverseRangeWithOptions(t *testing.T) {
+	client.FlushAll()
+	key1 := "test_TestClient_MultiReverseRangeWithOptions_key1"
+	key2 := "test_TestClient_MultiReverseRangeWithOptions_key2"
+	labels1 := map[string]string{
+		"metric":  "cpu",
+		"country": "US",
+	}
+	labels2 := map[string]string{
+		"metric":  "cpu",
+		"country": "UK",
+	}
+
+	_, err := client.AddWithOptions(key1, 1, 5.0, CreateOptions{Labels: labels1})
+	if err != nil {
+		t.Errorf("TestClient_MultiReverseRangeWithOptions Add() error = %v", err)
+		return
+	}
+	_, err = client.Add(key1, 2, 15.0)
+
+	_, err = client.AddWithOptions(key2, 1, 5.0, CreateOptions{Labels: labels2})
+
+	if err != nil {
+		t.Errorf("TestClient_MultiReverseRangeWithOptions Add() error = %v", err)
+		return
+	}
+	type fields struct {
+		Pool ConnPool
+		Name string
+	}
+	type args struct {
+		fromTimestamp int64
+		toTimestamp   int64
+		mrangeOptions MultiRangeOptions
+		filters       []string
+	}
+	tests := []struct {
+		name       string
+		fields     fields
+		args       args
+		wantRanges []Range
+		wantErr    bool
+	}{
+		{"error one matcher", fields{client.Pool, "test"}, args{1, 2, DefaultMultiRangeOptions, []string{}}, nil, true},
+		{"last point only single serie", fields{client.Pool, "test"}, args{1, 2, *NewMultiRangeOptions().SetCount(1), []string{"country=UK"}}, []Range{{key2, map[string]string{}, []DataPoint{DataPoint{1, 5.0}}}}, false},
+		{"multi series", fields{client.Pool, "test"}, args{1, 2, DefaultMultiRangeOptions, []string{"metric=cpu"}}, []Range{Range{key1, map[string]string{}, []DataPoint{{2, 15.0}, {1, 5.0}}}, {key2, map[string]string{}, []DataPoint{DataPoint{1, 5.0}}}}, false},
+		{"last point only multi series", fields{client.Pool, "test"}, args{1, 2, *NewMultiRangeOptions().SetCount(1), []string{"metric=cpu"}}, []Range{Range{key1, map[string]string{}, []DataPoint{{2, 15.0}}}, {key2, map[string]string{}, []DataPoint{DataPoint{1, 5.0}}}}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client := &Client{
+				Pool: tt.fields.Pool,
+				Name: tt.fields.Name,
+			}
+			gotRanges, err := client.MultiReverseRangeWithOptions(tt.args.fromTimestamp, tt.args.toTimestamp, tt.args.mrangeOptions, tt.args.filters...)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("MultiReverseRangeWithOptions() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !cmp.Equal(gotRanges, tt.wantRanges) {
+				t.Errorf("MultiReverseRangeWithOptions() gotRanges = %v, want %v. Difference: %s", gotRanges, tt.wantRanges, cmp.Diff(gotRanges, tt.wantRanges))
+			}
+		})
+	}
 }
