@@ -202,11 +202,32 @@ func (client *Client) AggRange(key string, fromTimestamp int64, toTimestamp int6
 // toTimestamp - end of range. You can use TimeRangeFull or TimeRangeMaximum to express the maximum possible timestamp.
 // rangeOptions - RangeOptions options. You can use the default DefaultRangeOptions
 func (client *Client) RangeWithOptions(key string, fromTimestamp int64, toTimestamp int64, rangeOptions RangeOptions) (dataPoints []DataPoint, err error) {
+	return client.rangeWithOptions("TS.RANGE", key, fromTimestamp, toTimestamp, rangeOptions)
+}
+
+// ReverseRangeWithOptions - Query a timestamp range on a specific time-series in reverse order
+// args:
+// key - time-series key name
+// fromTimestamp - start of range. You can use TimeRangeMinimum to express the minimum possible timestamp.
+// toTimestamp - end of range. You can use TimeRangeFull or TimeRangeMaximum to express the maximum possible timestamp.
+// rangeOptions - RangeOptions options. You can use the default DefaultRangeOptions
+func (client *Client) ReverseRangeWithOptions(key string, fromTimestamp int64, toTimestamp int64, rangeOptions RangeOptions) (dataPoints []DataPoint, err error) {
+	return client.rangeWithOptions("TS.REVRANGE", key, fromTimestamp, toTimestamp, rangeOptions)
+}
+
+// rangeWithOptions - Query a timestamp range on a specific time-series in some order
+// args:
+// command - range command to run
+// key - time-series key name
+// fromTimestamp - start of range. You can use TimeRangeMinimum to express the minimum possible timestamp.
+// toTimestamp - end of range. You can use TimeRangeFull or TimeRangeMaximum to express the maximum possible timestamp.
+// rangeOptions - RangeOptions options. You can use the default DefaultRangeOptions
+func (client *Client) rangeWithOptions(command string, key string, fromTimestamp int64, toTimestamp int64, rangeOptions RangeOptions) (dataPoints []DataPoint, err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
 	var reply interface{}
 	args := createRangeCmdArguments(key, fromTimestamp, toTimestamp, rangeOptions)
-	reply, err = conn.Do("TS.RANGE", args...)
+	reply, err = conn.Do(command, args...)
 	if err != nil {
 		return
 	}
@@ -236,11 +257,25 @@ func (client *Client) AggMultiRange(fromTimestamp int64, toTimestamp int64, aggT
 // mrangeOptions - MultiRangeOptions options. You can use the default DefaultMultiRangeOptions
 // filters - list of filters e.g. "a=bb", "b!=aa"
 func (client *Client) MultiRangeWithOptions(fromTimestamp int64, toTimestamp int64, mrangeOptions MultiRangeOptions, filters ...string) (ranges []Range, err error) {
+	return client.multiRangeWithOptions("TS.MRANGE", fromTimestamp, toTimestamp, mrangeOptions, filters)
+}
+
+// MultiReverseRangeWithOptions - Query a timestamp range across multiple time-series by filters, in reverse direction.
+// args:
+// fromTimestamp - start of range. You can use TimeRangeMinimum to express the minimum possible timestamp.
+// toTimestamp - end of range. You can use TimeRangeFull or TimeRangeMaximum to express the maximum possible timestamp.
+// mrangeOptions - MultiRangeOptions options. You can use the default DefaultMultiRangeOptions
+// filters - list of filters e.g. "a=bb", "b!=aa"
+func (client *Client) MultiReverseRangeWithOptions(fromTimestamp int64, toTimestamp int64, mrangeOptions MultiRangeOptions, filters ...string) (ranges []Range, err error) {
+	return client.multiRangeWithOptions("TS.MREVRANGE", fromTimestamp, toTimestamp, mrangeOptions, filters)
+}
+
+func (client *Client) multiRangeWithOptions(cmd string, fromTimestamp int64, toTimestamp int64, mrangeOptions MultiRangeOptions, filters []string) (ranges []Range, err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
 	var reply interface{}
 	args := createMultiRangeCmdArguments(fromTimestamp, toTimestamp, mrangeOptions, filters)
-	reply, err = conn.Do("TS.MRANGE", args...)
+	reply, err = conn.Do(cmd, args...)
 	if err != nil {
 		return
 	}
