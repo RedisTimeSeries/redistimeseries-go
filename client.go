@@ -202,7 +202,7 @@ func (client *Client) AggRange(key string, fromTimestamp int64, toTimestamp int6
 // toTimestamp - end of range. You can use TimeRangeFull or TimeRangeMaximum to express the maximum possible timestamp.
 // rangeOptions - RangeOptions options. You can use the default DefaultRangeOptions
 func (client *Client) RangeWithOptions(key string, fromTimestamp int64, toTimestamp int64, rangeOptions RangeOptions) (dataPoints []DataPoint, err error) {
-	return GenericRangeWithOptions("TS.RANGE", fromTimestamp, toTimestamp, rangeOptions)
+	return rangeWithOptions("TS.RANGE", fromTimestamp, toTimestamp, rangeOptions)
 }
 
 // ReverseRangeWithOptions - Query a timestamp range on a specific time-series in reverse order
@@ -212,7 +212,7 @@ func (client *Client) RangeWithOptions(key string, fromTimestamp int64, toTimest
 // toTimestamp - end of range. You can use TimeRangeFull or TimeRangeMaximum to express the maximum possible timestamp.
 // rangeOptions - RangeOptions options. You can use the default DefaultRangeOptions
 func (client *Client) ReverseRangeWithOptions(key string, fromTimestamp int64, toTimestamp int64, rangeOptions RangeOptions) (dataPoints []DataPoint, err error) {
-	return GenericRangeWithOptions("TS.REVRANGE", fromTimestamp, toTimestamp, rangeOptions)
+	return rangeWithOptions("TS.REVRANGE", fromTimestamp, toTimestamp, rangeOptions)
 }
 
 // rangeWithOptions - Query a timestamp range on a specific time-series in some order
