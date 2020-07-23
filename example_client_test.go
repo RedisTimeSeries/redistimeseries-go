@@ -132,13 +132,21 @@ func ExampleClient_MultiAdd() {
 	}
 
 	// Adding multiple datapoints to multiple series
-	datapoints := []redistimeseries.Sample{{"timeserie-1", redistimeseries.DataPoint{1, 10.5}}, {"timeserie-1", redistimeseries.DataPoint{2, 40.5}}, {"timeserie-2", redistimeseries.DataPoint{1, 60.5}}}
+	datapoints := []redistimeseries.Sample{
+		{"timeserie-1", redistimeseries.DataPoint{1, 10.5}},
+		{"timeserie-1", redistimeseries.DataPoint{2, 40.5}},
+		{"timeserie-2", redistimeseries.DataPoint{1, 60.5}},
+	}
 	timestamps, err := client.MultiAdd(datapoints...)
 
 	fmt.Println(fmt.Sprintf("Example adding multiple datapoints to multiple series. Added timestamps: %v", timestamps))
 
 	// Adding multiple datapoints to the same serie
-	datapointsSameSerie := []redistimeseries.Sample{{"timeserie-1", redistimeseries.DataPoint{3, 10.5}}, {"timeserie-1", redistimeseries.DataPoint{4, 40.5}}, {"timeserie-1", redistimeseries.DataPoint{5, 60.5}}}
+	datapointsSameSerie := []redistimeseries.Sample{
+		{"timeserie-1", redistimeseries.DataPoint{3, 10.5}},
+		{"timeserie-1", redistimeseries.DataPoint{4, 40.5}},
+		{"timeserie-1", redistimeseries.DataPoint{5, 60.5}},
+	}
 	timestampsSameSerie, err := client.MultiAdd(datapointsSameSerie...)
 
 	fmt.Println(fmt.Sprintf("Example of adding multiple datapoints to the same serie. Added timestamps: %v", timestampsSameSerie))
