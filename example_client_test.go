@@ -4,6 +4,7 @@ import (
 	"fmt"
 	redistimeseries "github.com/RedisTimeSeries/redistimeseries-go"
 	"github.com/gomodule/redigo/redis"
+	"log"
 )
 
 // exemplifies the NewClientFromPool function
@@ -149,4 +150,56 @@ func ExampleClient_MultiGetWithOptions() {
 	// Output:
 	// Ranges: [{time-serie-1 map[] [{4 2}]} {time-serie-2 map[] [{4 10}]}]
 	// Ranges with labels: [{time-serie-1 map[az:us-east-1 machine:machine-1] [{4 2}]} {time-serie-2 map[az:us-east-1 machine:machine-2] [{4 10}]}]
+}
+
+// Exemplifies the usage of MultiAdd.
+func ExampleClient_MultiAdd() {
+	host := "localhost:6379"
+	password := ""
+	pool := &redis.Pool{Dial: func() (redis.Conn, error) {
+		return redis.Dial("tcp", host, redis.DialPassword(password))
+	}}
+	client := redistimeseries.NewClientFromPool(pool, "ts-client-1")
+
+	labels1 := map[string]string{
+		"machine": "machine-1",
+		"az":      "us-east-1",
+	}
+	labels2 := map[string]string{
+		"machine": "machine-2",
+		"az":      "us-east-1",
+	}
+
+	err := client.CreateKeyWithOptions("timeserie-1", redistimeseries.CreateOptions{Labels: labels1})
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = client.CreateKeyWithOptions("timeserie-2", redistimeseries.CreateOptions{Labels: labels2})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Adding multiple datapoints to multiple series
+	datapoints := []redistimeseries.Sample{
+		{"timeserie-1", redistimeseries.DataPoint{1, 10.5}},
+		{"timeserie-1", redistimeseries.DataPoint{2, 40.5}},
+		{"timeserie-2", redistimeseries.DataPoint{1, 60.5}},
+	}
+	timestamps, err := client.MultiAdd(datapoints...)
+
+	fmt.Println(fmt.Sprintf("Example adding multiple datapoints to multiple series. Added timestamps: %v", timestamps))
+
+	// Adding multiple datapoints to the same serie
+	datapointsSameSerie := []redistimeseries.Sample{
+		{"timeserie-1", redistimeseries.DataPoint{3, 10.5}},
+		{"timeserie-1", redistimeseries.DataPoint{4, 40.5}},
+		{"timeserie-1", redistimeseries.DataPoint{5, 60.5}},
+	}
+	timestampsSameSerie, err := client.MultiAdd(datapointsSameSerie...)
+
+	fmt.Println(fmt.Sprintf("Example of adding multiple datapoints to the same serie. Added timestamps: %v", timestampsSameSerie))
+
+	// Output:
+	// Example adding multiple datapoints to multiple series. Added timestamps: [1 2 1]
+	// Example of adding multiple datapoints to the same serie. Added timestamps: [3 4 5]
 }
