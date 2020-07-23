@@ -202,16 +202,7 @@ func (client *Client) AggRange(key string, fromTimestamp int64, toTimestamp int6
 // toTimestamp - end of range. You can use TimeRangeFull or TimeRangeMaximum to express the maximum possible timestamp.
 // rangeOptions - RangeOptions options. You can use the default DefaultRangeOptions
 func (client *Client) RangeWithOptions(key string, fromTimestamp int64, toTimestamp int64, rangeOptions RangeOptions) (dataPoints []DataPoint, err error) {
-	conn := client.Pool.Get()
-	defer conn.Close()
-	var reply interface{}
-	args := createRangeCmdArguments(key, fromTimestamp, toTimestamp, rangeOptions)
-	reply, err = conn.Do("TS.RANGE", args...)
-	if err != nil {
-		return
-	}
-	dataPoints, err = ParseDataPoints(reply)
-	return
+	return rangeWithOptions("TS.RANGE", fromTimestamp, toTimestamp, rangeOptions)
 }
 
 // ReverseRangeWithOptions - Query a timestamp range on a specific time-series in reverse order
@@ -221,11 +212,22 @@ func (client *Client) RangeWithOptions(key string, fromTimestamp int64, toTimest
 // toTimestamp - end of range. You can use TimeRangeFull or TimeRangeMaximum to express the maximum possible timestamp.
 // rangeOptions - RangeOptions options. You can use the default DefaultRangeOptions
 func (client *Client) ReverseRangeWithOptions(key string, fromTimestamp int64, toTimestamp int64, rangeOptions RangeOptions) (dataPoints []DataPoint, err error) {
+	return rangeWithOptions("TS.REVRANGE", fromTimestamp, toTimestamp, rangeOptions)
+}
+
+// rangeWithOptions - Query a timestamp range on a specific time-series in some order
+// args:
+// command - range command to run
+// key - time-series key name
+// fromTimestamp - start of range. You can use TimeRangeMinimum to express the minimum possible timestamp.
+// toTimestamp - end of range. You can use TimeRangeFull or TimeRangeMaximum to express the maximum possible timestamp.
+// rangeOptions - RangeOptions options. You can use the default DefaultRangeOptions
+func (client *Client) rangeWithOptions(command string, key string, fromTimestamp int64, toTimestamp int64, rangeOptions RangeOptions) (dataPoints []DataPoint, err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
 	var reply interface{}
 	args := createRangeCmdArguments(key, fromTimestamp, toTimestamp, rangeOptions)
-	reply, err = conn.Do("TS.REVRANGE", args...)
+	reply, err = conn.Do(command, args...)
 	if err != nil {
 		return
 	}
