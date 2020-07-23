@@ -52,14 +52,14 @@ func ExampleClient_MultiRangeWithOptions() {
 		"machine": "machine-1",
 		"az":      "us-east-1",
 	}
-	client.AddWithOptions("time-serie-1", 2, 1.0, redistimeseries.CreateOptions{RetentionMSecs: 0, Labels: labels1})
+	client.AddWithOptions("time-serie-1", 2, 1.0, redistimeseries.CreateOptions{Labels: labels1})
 	client.Add("time-serie-1", 4, 2.0)
 
 	labels2 := map[string]string{
 		"machine": "machine-2",
 		"az":      "us-east-1",
 	}
-	client.AddWithOptions("time-serie-2", 1, 5.0, redistimeseries.CreateOptions{RetentionMSecs: 0, Labels: labels2})
+	client.AddWithOptions("time-serie-2", 1, 5.0, redistimeseries.CreateOptions{Labels: labels2})
 	client.Add("time-serie-2", 4, 10.0)
 
 	ranges, _ := client.MultiRangeWithOptions(1, 10, redistimeseries.DefaultMultiRangeOptions, "az=us-east-1")
@@ -82,14 +82,14 @@ func ExampleClient_MultiGetWithOptions() {
 		"machine": "machine-1",
 		"az":      "us-east-1",
 	}
-	client.AddWithOptions("time-serie-1", 2, 1.0, redistimeseries.CreateOptions{RetentionMSecs: 0, Labels: labels1})
+	client.AddWithOptions("time-serie-1", 2, 1.0, redistimeseries.CreateOptions{Labels: labels1})
 	client.Add("time-serie-1", 4, 2.0)
 
 	labels2 := map[string]string{
 		"machine": "machine-2",
 		"az":      "us-east-1",
 	}
-	client.AddWithOptions("time-serie-2", 1, 5.0, redistimeseries.CreateOptions{RetentionMSecs: 0, Labels: labels2})
+	client.AddWithOptions("time-serie-2", 1, 5.0, redistimeseries.CreateOptions{Labels: labels2})
 	client.Add("time-serie-2", 4, 10.0)
 
 	ranges, _ := client.MultiGetWithOptions(redistimeseries.DefaultMultiGetOptions, "az=us-east-1")
@@ -122,11 +122,11 @@ func ExampleClient_MultiAdd() {
 		"az":      "us-east-1",
 	}
 
-	err := client.CreateKeyWithOptions("timeserie-1", redistimeseries.CreateOptions{RetentionMSecs: 0, Labels: labels1})
+	err := client.CreateKeyWithOptions("timeserie-1", redistimeseries.CreateOptions{Labels: labels1})
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = client.CreateKeyWithOptions("timeserie-2", redistimeseries.CreateOptions{RetentionMSecs: 0, Labels: labels2})
+	err = client.CreateKeyWithOptions("timeserie-2", redistimeseries.CreateOptions{Labels: labels2})
 	if err != nil {
 		log.Fatal(err)
 	}
