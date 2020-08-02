@@ -51,7 +51,7 @@ func createMultiRangeCmdArguments(fromTimestamp int64, toTimestamp int64, mrange
 	if mrangeOptions.Count != -1 {
 		args = append(args, "COUNT", strconv.FormatInt(mrangeOptions.Count, 10))
 	}
-	if mrangeOptions.WithLabels == true {
+	if mrangeOptions.WithLabels {
 		args = append(args, "WITHLABELS")
 	}
 	args = append(args, "FILTER")

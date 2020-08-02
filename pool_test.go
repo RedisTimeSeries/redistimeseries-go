@@ -21,8 +21,7 @@ func TestNewMultiHostPool(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var got *MultiHostPool
-			got = NewMultiHostPool(tt.args.hosts, tt.args.authPass)
+			got := NewMultiHostPool(tt.args.hosts, tt.args.authPass)
 			if len(got.hosts) != tt.wantPoolSize {
 				t.Errorf("NewMultiHostPool() = %v, want %v", got, tt.wantPoolSize)
 			}
@@ -43,6 +42,7 @@ func TestMultiHostPool_Close(t *testing.T) {
 		err := oneMulti.Close()
 		assert.Nil(t, err)
 		err = oneMulti.Close()
+		assert.Nil(t, err)
 		assert.NotNil(t, conn)
 		severalMulti := NewMultiHostPool([]string{host, host}, nil)
 		connMulti := severalMulti.Get()
