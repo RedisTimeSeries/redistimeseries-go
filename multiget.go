@@ -23,7 +23,7 @@ func (mgetopts *MultiGetOptions) SetWithLabels(value bool) *MultiGetOptions {
 
 func createMultiGetCmdArguments(mgetOptions MultiGetOptions, filters []string) []interface{} {
 	args := []interface{}{}
-	if mgetOptions.WithLabels == true {
+	if mgetOptions.WithLabels {
 		args = append(args, "WITHLABELS")
 	}
 	args = append(args, "FILTER")

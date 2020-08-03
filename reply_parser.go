@@ -48,8 +48,8 @@ func ParseRules(ruleInterface interface{}, err error) (rules []Rule, retErr erro
 }
 
 func ParseInfo(result interface{}, err error) (info KeyInfo, outErr error) {
-	values, err := redis.Values(result, nil)
-	if err != nil {
+	values, outErr := redis.Values(result, err)
+	if outErr != nil {
 		return KeyInfo{}, err
 	}
 	if len(values)%2 != 0 {
@@ -57,23 +57,23 @@ func ParseInfo(result interface{}, err error) (info KeyInfo, outErr error) {
 	}
 	var key string
 	for i := 0; i < len(values); i += 2 {
-		key, err = redis.String(values[i], nil)
+		key, outErr = redis.String(values[i], nil)
 		switch key {
 		case "rules":
-			info.Rules, err = ParseRules(values[i+1], nil)
+			info.Rules, outErr = ParseRules(values[i+1], nil)
 		case "retentionTime":
-			info.RetentionTime, err = redis.Int64(values[i+1], nil)
+			info.RetentionTime, outErr = redis.Int64(values[i+1], nil)
 		case "chunkCount":
-			info.ChunkCount, err = redis.Int64(values[i+1], nil)
+			info.ChunkCount, outErr = redis.Int64(values[i+1], nil)
 		case "maxSamplesPerChunk":
-			info.MaxSamplesPerChunk, err = redis.Int64(values[i+1], nil)
+			info.MaxSamplesPerChunk, outErr = redis.Int64(values[i+1], nil)
 		case "lastTimestamp":
-			info.LastTimestamp, err = redis.Int64(values[i+1], nil)
+			info.LastTimestamp, outErr = redis.Int64(values[i+1], nil)
 		case "labels":
-			info.Labels, err = ParseLabels(values[i+1])
+			info.Labels, outErr = ParseLabels(values[i+1])
 		}
 		if err != nil {
-			return KeyInfo{}, err
+			return KeyInfo{}, outErr
 		}
 	}
 
@@ -87,7 +87,7 @@ func ParseDataPoints(info interface{}) (dataPoints []DataPoint, err error) {
 		return
 	}
 	for _, rawDataPoint := range values {
-		var dataPoint *DataPoint = nil
+		var dataPoint *DataPoint = nil //nolint:ineffassign
 		dataPoint, err = ParseDataPoint(rawDataPoint)
 		if err != nil {
 			return
@@ -219,7 +219,7 @@ func ParseRangesSingleDataPoint(info interface{}) (ranges []Range, err error) {
 		if err != nil {
 			return nil, err
 		}
-		var dataPoint *DataPoint = nil
+		var dataPoint *DataPoint = nil //nolint:ineffassign
 		dataPoint, err = ParseDataPoint(iValues[2])
 		if err != nil {
 			return nil, err

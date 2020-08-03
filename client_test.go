@@ -48,28 +48,30 @@ func (client *Client) FlushAll() (err error) {
 }
 
 func TestCreateKey(t *testing.T) {
-	client.FlushAll()
-	err := client.CreateKey("test_CreateKey", defaultDuration)
-	assert.Equal(t, nil, err)
+	err := client.FlushAll()
+	assert.Nil(t, err)
+	err = client.CreateKey("test_CreateKey", defaultDuration)
+	assert.Nil(t, err)
 
 	labels := map[string]string{
 		"cpu":     "cpu1",
 		"country": "IT",
 	}
 	err = client.CreateKeyWithOptions("test_CreateKeyLabels", CreateOptions{RetentionMSecs: defaultDuration, Labels: labels})
-	assert.Equal(t, nil, err)
+	assert.Nil(t, err)
 
 	err = client.CreateKey("test_CreateKey", tooShortDuration)
 	assert.NotNil(t, err)
 }
 
 func TestAlterKey(t *testing.T) {
-	client.FlushAll()
+	err := client.FlushAll()
+	assert.Nil(t, err)
 	labels := map[string]string{
 		"cpu":     "cpu1",
 		"country": "IT",
 	}
-	err := client.AlterKeyWithOptions("test_AlterKey", CreateOptions{RetentionMSecs: defaultDuration, Labels: labels})
+	err = client.AlterKeyWithOptions("test_AlterKey", CreateOptions{RetentionMSecs: defaultDuration, Labels: labels})
 	assert.NotNil(t, err)
 	err = client.CreateKeyWithOptions("test_AlterKey", CreateOptions{RetentionMSecs: defaultDuration, Labels: labels})
 	assert.Nil(t, err)
@@ -78,34 +80,39 @@ func TestAlterKey(t *testing.T) {
 }
 
 func TestQueryIndex(t *testing.T) {
-	client.FlushAll()
+	err := client.FlushAll()
+	assert.Nil(t, err)
 	labels := map[string]string{
 		"sensor_id": "3",
 		"area_id":   "32",
 	}
 
-	_, err := client.AddWithOptions("test_QueryIndex", 1, 18.7, CreateOptions{Uncompressed: false, Labels: labels})
+	_, err = client.AddWithOptions("test_QueryIndex", 1, 18.7, CreateOptions{Uncompressed: false, Labels: labels})
 	assert.Nil(t, err)
 	keys, err := client.QueryIndex("sensor_id=3", "area_id=32")
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(keys))
 	assert.Equal(t, "test_QueryIndex", keys[0])
 	keys, err = client.QueryIndex("sensor_id=2")
+	assert.Nil(t, err)
 	assert.Equal(t, 0, len(keys))
 }
 
 func TestCreateUncompressedKey(t *testing.T) {
-	client.FlushAll()
+	err := client.FlushAll()
+	assert.Nil(t, err)
 	compressedKey := "test_Compressed"
 	uncompressedKey := "test_Uncompressed"
-	err := client.CreateKeyWithOptions(compressedKey, CreateOptions{Uncompressed: false})
-	assert.Equal(t, nil, err)
+	err = client.CreateKeyWithOptions(compressedKey, CreateOptions{Uncompressed: false})
+	assert.Nil(t, err)
 	err = client.CreateKeyWithOptions(uncompressedKey, CreateOptions{Uncompressed: true})
-	assert.Equal(t, nil, err)
+	assert.Nil(t, err)
 	var i int64 = 0
 	for ; i < 1000; i++ {
-		client.Add(compressedKey, i, 18.7)
-		client.Add(uncompressedKey, i, 18.7)
+		_, err = client.Add(compressedKey, i, 18.7)
+		assert.Nil(t, err)
+		_, err = client.Add(uncompressedKey, i, 18.7)
+		assert.Nil(t, err)
 	}
 	CompressedInfo, _ := client.Info(compressedKey)
 	UncompressedInfo, _ := client.Info(uncompressedKey)
@@ -115,8 +122,10 @@ func TestCreateUncompressedKey(t *testing.T) {
 	compressedKey = "test_Compressed_Add"
 	uncompressedKey = "test_Uncompressed_Add"
 	for i = 0; i < 1000; i++ {
-		client.AddWithOptions(compressedKey, i, 18.7, CreateOptions{Uncompressed: false})
-		client.AddWithOptions(uncompressedKey, i, 18.7, CreateOptions{Uncompressed: true})
+		_, err = client.AddWithOptions(compressedKey, i, 18.7, CreateOptions{Uncompressed: false})
+		assert.Nil(t, err)
+		_, err = client.AddWithOptions(uncompressedKey, i, 18.7, CreateOptions{Uncompressed: true})
+		assert.Nil(t, err)
 	}
 	CompressedInfo, _ = client.Info(compressedKey)
 	UncompressedInfo, _ = client.Info(uncompressedKey)
@@ -125,17 +134,19 @@ func TestCreateUncompressedKey(t *testing.T) {
 }
 
 func TestCreateRule(t *testing.T) {
-	client.FlushAll()
+	err := client.FlushAll()
+	assert.Nil(t, err)
 	var destinationKey string
-	var err error
 	key := "test_CreateRule"
-	client.CreateKey(key, defaultDuration)
+	err = client.CreateKey(key, defaultDuration)
+	assert.Nil(t, err)
 	var found bool
 	for _, aggString := range aggToString {
 		destinationKey = string("test_CreateRule_dest" + aggString)
-		client.CreateKey(destinationKey, defaultDuration)
+		err = client.CreateKey(destinationKey, defaultDuration)
+		assert.Nil(t, err)
 		err = client.CreateRule(key, aggString, 100, destinationKey)
-		assert.Equal(t, nil, err)
+		assert.Nil(t, err)
 		info, _ := client.Info(key)
 		found = false
 		for _, rule := range info.Rules {
@@ -148,14 +159,18 @@ func TestCreateRule(t *testing.T) {
 }
 
 func TestClientInfo(t *testing.T) {
-	client.FlushAll()
+	err := client.FlushAll()
+	assert.Nil(t, err)
 	key := "test_INFO"
 	destKey := "test_INFO_dest"
-	client.CreateKey(key, defaultDuration)
-	client.CreateKey(destKey, defaultDuration)
-	client.CreateRule(key, AvgAggregation, 100, destKey)
+	err = client.CreateKey(key, defaultDuration)
+	assert.Nil(t, err)
+	err = client.CreateKey(destKey, defaultDuration)
+	assert.Nil(t, err)
+	err = client.CreateRule(key, AvgAggregation, 100, destKey)
+	assert.Nil(t, err)
 	res, err := client.Info(key)
-	assert.Equal(t, nil, err)
+	assert.Nil(t, err)
 	expected := KeyInfo{ChunkCount: 1,
 		MaxSamplesPerChunk: 256, LastTimestamp: 0, RetentionTime: 3600000,
 		Rules:  []Rule{{DestKey: destKey, BucketSizeSec: 100, AggType: AvgAggregation}},
@@ -165,14 +180,18 @@ func TestClientInfo(t *testing.T) {
 }
 
 func TestDeleteRule(t *testing.T) {
-	client.FlushAll()
+	err := client.FlushAll()
+	assert.Nil(t, err)
 	key := "test_DELETE"
 	destKey := "test_DELETE_dest"
-	client.CreateKey(key, defaultDuration)
-	client.CreateKey(destKey, defaultDuration)
-	client.CreateRule(key, AvgAggregation, 100, destKey)
-	err := client.DeleteRule(key, destKey)
-	assert.Equal(t, nil, err)
+	err = client.CreateKey(key, defaultDuration)
+	assert.Nil(t, err)
+	err = client.CreateKey(destKey, defaultDuration)
+	assert.Nil(t, err)
+	err = client.CreateRule(key, AvgAggregation, 100, destKey)
+	assert.Nil(t, err)
+	err = client.DeleteRule(key, destKey)
+	assert.Nil(t, err)
 	info, _ := client.Info(key)
 	assert.Equal(t, 0, len(info.Rules))
 	err = client.DeleteRule(key, destKey)
@@ -180,13 +199,15 @@ func TestDeleteRule(t *testing.T) {
 }
 
 func TestAdd(t *testing.T) {
-	client.FlushAll()
+	err := client.FlushAll()
+	assert.Nil(t, err)
 	key := "test_ADD"
 	now := time.Now().Unix()
 	PI := 3.14159265359
-	client.CreateKey(key, defaultDuration)
+	err = client.CreateKey(key, defaultDuration)
+	assert.Nil(t, err)
 	storedTimestamp, err := client.Add(key, now, PI)
-	assert.Equal(t, nil, err)
+	assert.Nil(t, err)
 	assert.Equal(t, now, storedTimestamp)
 	info, _ := client.Info(key)
 	assert.Equal(t, now, info.LastTimestamp)
@@ -205,21 +226,25 @@ func TestAdd(t *testing.T) {
 }
 
 func TestAddWithRetention(t *testing.T) {
-	client.FlushAll()
+	err := client.FlushAll()
+	assert.Nil(t, err)
 	key := "test_ADDWITHRETENTION"
 	now := time.Now().Unix()
 	PI := 3.14159265359
-	client.CreateKey(key, defaultDuration)
-	_, err := client.AddWithRetention(key, now, PI, 1000000)
-	assert.Equal(t, nil, err)
+	err = client.CreateKey(key, defaultDuration)
+	assert.Nil(t, err)
+	_, err = client.AddWithRetention(key, now, PI, 1000000)
+	assert.Nil(t, err)
 	info, _ := client.Info(key)
 	assert.Equal(t, now, info.LastTimestamp)
 }
 
 func TestClient_AggRange(t *testing.T) {
-	client.FlushAll()
+	err := client.FlushAll()
+	assert.Nil(t, err)
 	key := "test_aggRange"
-	client.CreateKey(key, defaultDuration)
+	err = client.CreateKey(key, defaultDuration)
+	assert.Nil(t, err)
 	ts1 := int64(1)
 	ts2 := int64(10)
 
@@ -228,22 +253,25 @@ func TestClient_AggRange(t *testing.T) {
 
 	expectedResponse := []DataPoint{{int64(0), 1.0}, {int64(10), 1.0}}
 
-	client.Add(key, ts1, value1)
-	client.Add(key, ts2, value2)
+	_, err = client.Add(key, ts1, value1)
+	assert.Nil(t, err)
+	_, err = client.Add(key, ts2, value2)
+	assert.Nil(t, err)
 
 	dataPoints, err := client.AggRange(key, ts1, ts2, CountAggregation, 10)
-	assert.Equal(t, nil, err)
+	assert.Nil(t, err)
 	assert.Equal(t, expectedResponse, dataPoints)
 
 	// ensure zero-based index produces same response
 	dataPointsZeroBased, err := client.AggRange(key, 0, ts2, CountAggregation, 10)
-	assert.Equal(t, nil, err)
+	assert.Nil(t, err)
 	assert.Equal(t, dataPoints, dataPointsZeroBased)
 
 }
 
 func TestClient_AggMultiRange(t *testing.T) {
-	client.FlushAll()
+	err := client.FlushAll()
+	assert.Nil(t, err)
 	key := "test_aggMultiRange1"
 	labels := map[string]string{
 		"cpu":     "cpu1",
@@ -251,20 +279,24 @@ func TestClient_AggMultiRange(t *testing.T) {
 	}
 	ts1 := int64(1)
 	ts2 := int64(2)
-	client.AddWithOptions(key, ts1, 5.0, CreateOptions{RetentionMSecs: defaultDuration, Labels: labels})
-	client.AddWithOptions(key, ts2, 6.0, CreateOptions{RetentionMSecs: defaultDuration, Labels: labels})
-
+	_, err = client.AddWithOptions(key, ts1, 5.0, CreateOptions{RetentionMSecs: defaultDuration, Labels: labels})
+	assert.Nil(t, err)
+	_, err = client.AddWithOptions(key, ts2, 6.0, CreateOptions{RetentionMSecs: defaultDuration, Labels: labels})
+	assert.Nil(t, err)
 	key2 := "test_aggMultiRange2"
 	labels2 := map[string]string{
 		"cpu":     "cpu2",
 		"country": "US",
 	}
-	client.CreateKeyWithOptions(key2, CreateOptions{RetentionMSecs: defaultDuration, Labels: labels2})
-	client.AddWithOptions(key2, ts1, 4.0, CreateOptions{})
-	client.Add(key2, ts2, 8.0)
+	err = client.CreateKeyWithOptions(key2, CreateOptions{RetentionMSecs: defaultDuration, Labels: labels2})
+	assert.Nil(t, err)
+	_, err = client.AddWithOptions(key2, ts1, 4.0, CreateOptions{})
+	assert.Nil(t, err)
+	_, err = client.Add(key2, ts2, 8.0)
+	assert.Nil(t, err)
 
 	ranges, err := client.AggMultiRange(ts1, ts2, CountAggregation, 10, "country=US")
-	assert.Equal(t, nil, err)
+	assert.Nil(t, err)
 	assert.Equal(t, 2, len(ranges))
 	assert.Equal(t, 2.0, ranges[0].DataPoints[0].Value)
 
@@ -274,7 +306,8 @@ func TestClient_AggMultiRange(t *testing.T) {
 }
 
 func TestClient_AggMultiRangeWithOptions(t *testing.T) {
-	client.FlushAll()
+	err := client.FlushAll()
+	assert.Nil(t, err)
 	key := "test_aggMultiRange1"
 	labels := map[string]string{
 		"cpu":     "cpu1",
@@ -282,30 +315,36 @@ func TestClient_AggMultiRangeWithOptions(t *testing.T) {
 	}
 	ts1 := int64(1)
 	ts2 := int64(2)
-	client.AddWithOptions(key, ts1, 1, CreateOptions{RetentionMSecs: defaultDuration, Labels: labels})
-	client.AddWithOptions(key, ts2, 2, CreateOptions{RetentionMSecs: defaultDuration, Labels: labels})
+	_, err = client.AddWithOptions(key, ts1, 1, CreateOptions{RetentionMSecs: defaultDuration, Labels: labels})
+	assert.Nil(t, err)
+	_, err = client.AddWithOptions(key, ts2, 2, CreateOptions{RetentionMSecs: defaultDuration, Labels: labels})
+	assert.Nil(t, err)
 
 	key2 := "test_aggMultiRange2"
 	labels2 := map[string]string{
 		"cpu":     "cpu2",
 		"country": "US",
 	}
-	client.CreateKeyWithOptions(key2, CreateOptions{RetentionMSecs: defaultDuration, Labels: labels2})
-	client.AddWithOptions(key2, ts1, 1, CreateOptions{})
-	client.Add(key2, ts2, 2)
+	err = client.CreateKeyWithOptions(key2, CreateOptions{RetentionMSecs: defaultDuration, Labels: labels2})
+	assert.Nil(t, err)
+	_, err = client.AddWithOptions(key2, ts1, 1, CreateOptions{})
+	assert.Nil(t, err)
+	_, err = client.Add(key2, ts2, 2)
+	assert.Nil(t, err)
 
 	ranges, err := client.MultiRangeWithOptions(ts1, ts2, DefaultMultiRangeOptions, "country=US")
-	assert.Equal(t, nil, err)
+	assert.Nil(t, err)
 	assert.Equal(t, 2, len(ranges))
 }
 
 func TestClient_Get(t *testing.T) {
-	client.FlushAll()
+	err := client.FlushAll()
+	assert.Nil(t, err)
 	keyWithData := "test_TestClient_Get_keyWithData"
 	keyEmpty := "test_TestClient_Get_Empty_Key"
 	noKey := "test_TestClient_Get_dontexist"
 
-	err := client.CreateKeyWithOptions(keyEmpty, DefaultCreateOptions)
+	err = client.CreateKeyWithOptions(keyEmpty, DefaultCreateOptions)
 	if err != nil {
 		t.Errorf("TestClient_Get CreateKeyWithOptions() error = %v", err)
 		return
@@ -356,7 +395,8 @@ func TestClient_Get(t *testing.T) {
 }
 
 func TestClient_MultiGet(t *testing.T) {
-	client.FlushAll()
+	err := client.FlushAll()
+	assert.Nil(t, err)
 	key1 := "test_TestClient_MultiGet_key1"
 	key2 := "test_TestClient_MultiGet_key2"
 	labels1 := map[string]string{
@@ -368,20 +408,17 @@ func TestClient_MultiGet(t *testing.T) {
 		"country": "UK",
 	}
 
-	_, err := client.AddWithOptions(key1, 1, 5.0, CreateOptions{Labels: labels1})
+	_, err = client.AddWithOptions(key1, 1, 5.0, CreateOptions{Labels: labels1})
 	if err != nil {
 		t.Errorf("TestClient_MultiGet Add() error = %v", err)
 		return
 	}
 	_, err = client.Add(key1, 2, 15.0)
+	assert.Nil(t, err)
 	_, err = client.Add(key1, 3, 15.0)
-
+	assert.Nil(t, err)
 	_, err = client.AddWithOptions(key2, 1, 5.0, CreateOptions{Labels: labels2})
-
-	if err != nil {
-		t.Errorf("TestClient_MultiGet Add() error = %v", err)
-		return
-	}
+	assert.Nil(t, err)
 
 	type fields struct {
 		Pool ConnPool
@@ -418,7 +455,8 @@ func TestClient_MultiGet(t *testing.T) {
 }
 
 func TestClient_MultiGetWithOptions(t *testing.T) {
-	client.FlushAll()
+	err := client.FlushAll()
+	assert.Nil(t, err)
 	key1 := "test_TestClient_MultiGet_key1"
 	key2 := "test_TestClient_MultiGet_key2"
 	labels1 := map[string]string{
@@ -430,20 +468,14 @@ func TestClient_MultiGetWithOptions(t *testing.T) {
 		"country": "UK",
 	}
 
-	_, err := client.AddWithOptions(key1, 1, 5.0, CreateOptions{Labels: labels1})
-	if err != nil {
-		t.Errorf("TestClient_MultiGetWithOptions Add() error = %v", err)
-		return
-	}
+	_, err = client.AddWithOptions(key1, 1, 5.0, CreateOptions{Labels: labels1})
+	assert.Nil(t, err)
 	_, err = client.Add(key1, 2, 15.0)
+	assert.Nil(t, err)
 	_, err = client.Add(key1, 3, 15.0)
-
+	assert.Nil(t, err)
 	_, err = client.AddWithOptions(key2, 1, 5.0, CreateOptions{Labels: labels2})
-
-	if err != nil {
-		t.Errorf("TestClient_MultiGetWithOptions Add() error = %v", err)
-		return
-	}
+	assert.Nil(t, err)
 
 	type fields struct {
 		Pool ConnPool
@@ -480,15 +512,19 @@ func TestClient_MultiGetWithOptions(t *testing.T) {
 }
 
 func TestClient_Range(t *testing.T) {
-	client.FlushAll()
+	err := client.FlushAll()
+	assert.Nil(t, err)
 	key1 := "TestClient_Range_key1"
 	key2 := "TestClient_Range_key2"
-	client.CreateKeyWithOptions(key1, DefaultCreateOptions)
-	client.CreateKeyWithOptions(key2, DefaultCreateOptions)
+	err = client.CreateKeyWithOptions(key1, DefaultCreateOptions)
+	assert.Nil(t, err)
+	err = client.CreateKeyWithOptions(key2, DefaultCreateOptions)
+	assert.Nil(t, err)
 
-	client.Add(key1, 1, 5)
-	client.Add(key1, 2, 10)
-
+	_, err = client.Add(key1, 1, 5)
+	assert.Nil(t, err)
+	_, err = client.Add(key1, 2, 10)
+	assert.Nil(t, err)
 	type fields struct {
 		Pool ConnPool
 		Name string
@@ -541,7 +577,8 @@ func TestNewClientFromPool(t *testing.T) {
 	assert.Nil(t, err2)
 }
 func TestIncrDecrBy(t *testing.T) {
-	client.FlushAll()
+	err := client.FlushAll()
+	assert.Nil(t, err)
 	labels := map[string]string{
 		"sensor_id": "3",
 		"area_id":   "32",
@@ -558,10 +595,12 @@ func TestIncrDecrBy(t *testing.T) {
 }
 
 func TestMultiAdd(t *testing.T) {
-	client.FlushAll()
+	err := client.FlushAll()
+	assert.Nil(t, err)
 
 	currentTimestamp := time.Now().UnixNano() / 1e6
-	_, err := client.AddWithOptions("test:MultiAdd", currentTimestamp, 18.7, CreateOptions{Uncompressed: false})
+	_, err = client.AddWithOptions("test:MultiAdd", currentTimestamp, 18.7, CreateOptions{Uncompressed: false})
+	assert.Nil(t, err)
 	values, err := client.MultiAdd(Sample{Key: "test:MultiAdd", DataPoint: DataPoint{Timestamp: currentTimestamp + 1, Value: 14}},
 		Sample{Key: "test:MultiAdd", DataPoint: DataPoint{Timestamp: currentTimestamp + 2, Value: 15}})
 	assert.Nil(t, err)
@@ -571,6 +610,7 @@ func TestMultiAdd(t *testing.T) {
 
 	values, err = client.MultiAdd(Sample{Key: "test:MultiAdd", DataPoint: DataPoint{Timestamp: currentTimestamp + 3, Value: 14}},
 		Sample{Key: "test:MultiAdd:notExit", DataPoint: DataPoint{Timestamp: currentTimestamp + 4, Value: 14}})
+	assert.Nil(t, err)
 	assert.Equal(t, 2, len(values))
 	assert.Equal(t, currentTimestamp+3, values[0])
 	v, ok := values[1].(error)
@@ -583,15 +623,20 @@ func TestMultiAdd(t *testing.T) {
 }
 
 func TestClient_ReverseRangeWithOptions(t *testing.T) {
-
-	client.FlushAll()
+	err := client.FlushAll()
+	assert.Nil(t, err)
 	key1 := "TestClient_RevRange_key1"
 	key2 := "TestClient_RevRange_key2"
-	client.CreateKeyWithOptions(key1, DefaultCreateOptions)
-	client.CreateKeyWithOptions(key2, DefaultCreateOptions)
+	err = client.CreateKeyWithOptions(key1, DefaultCreateOptions)
+	assert.Nil(t, err)
+	err = client.CreateKeyWithOptions(key2, DefaultCreateOptions)
+	assert.Nil(t, err)
 
-	client.Add(key1, 1, 5)
-	client.Add(key1, 2, 10)
+	_, err = client.Add(key1, 1, 5)
+	assert.Nil(t, err)
+
+	_, err = client.Add(key1, 2, 10)
+	assert.Nil(t, err)
 
 	type fields struct {
 		Pool ConnPool
@@ -634,15 +679,19 @@ func TestClient_ReverseRangeWithOptions(t *testing.T) {
 }
 
 func TestClient_RangeWithOptions(t *testing.T) {
-
-	client.FlushAll()
+	err := client.FlushAll()
+	assert.Nil(t, err)
 	key1 := "TestClient_RangeWithOptions_key1"
 	key2 := "TestClient_RangeWithOptions_key2"
-	client.CreateKeyWithOptions(key1, DefaultCreateOptions)
-	client.CreateKeyWithOptions(key2, DefaultCreateOptions)
+	err = client.CreateKeyWithOptions(key1, DefaultCreateOptions)
+	assert.Nil(t, err)
+	err = client.CreateKeyWithOptions(key2, DefaultCreateOptions)
+	assert.Nil(t, err)
 
-	client.Add(key1, 1, 5)
-	client.Add(key1, 2, 10)
+	_, err = client.Add(key1, 1, 5)
+	assert.Nil(t, err)
+	_, err = client.Add(key1, 2, 10)
+	assert.Nil(t, err)
 
 	type fields struct {
 		Pool ConnPool
@@ -685,7 +734,8 @@ func TestClient_RangeWithOptions(t *testing.T) {
 }
 
 func TestClient_MultiReverseRangeWithOptions(t *testing.T) {
-	client.FlushAll()
+	err := client.FlushAll()
+	assert.Nil(t, err)
 	key1 := "test_TestClient_MultiReverseRangeWithOptions_key1"
 	key2 := "test_TestClient_MultiReverseRangeWithOptions_key2"
 	labels1 := map[string]string{
@@ -697,19 +747,13 @@ func TestClient_MultiReverseRangeWithOptions(t *testing.T) {
 		"country": "UK",
 	}
 
-	_, err := client.AddWithOptions(key1, 1, 5.0, CreateOptions{Labels: labels1})
-	if err != nil {
-		t.Errorf("TestClient_MultiReverseRangeWithOptions Add() error = %v", err)
-		return
-	}
+	_, err = client.AddWithOptions(key1, 1, 5.0, CreateOptions{Labels: labels1})
+	assert.Nil(t, err)
 	_, err = client.Add(key1, 2, 15.0)
-
+	assert.Nil(t, err)
 	_, err = client.AddWithOptions(key2, 1, 5.0, CreateOptions{Labels: labels2})
+	assert.Nil(t, err)
 
-	if err != nil {
-		t.Errorf("TestClient_MultiReverseRangeWithOptions Add() error = %v", err)
-		return
-	}
 	type fields struct {
 		Pool ConnPool
 		Name string

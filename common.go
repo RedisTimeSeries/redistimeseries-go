@@ -86,7 +86,7 @@ type Range struct {
 // Serialize options to args
 func (options *CreateOptions) Serialize(args []interface{}) (result []interface{}, err error) {
 	result = args
-	if options.Uncompressed == true {
+	if options.Uncompressed {
 		result = append(result, "UNCOMPRESSED")
 	}
 	if options.RetentionMSecs > 0 {

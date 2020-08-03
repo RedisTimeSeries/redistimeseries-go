@@ -20,6 +20,8 @@ checkfmt:
 	fi && \
 	exit $$EXIT_CODE
 
+lint:
+	@golangci-lint run
 get:
 	$(GOGET) -t -v ./...
 
