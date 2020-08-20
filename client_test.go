@@ -195,7 +195,7 @@ func TestDeleteRule(t *testing.T) {
 	info, _ := client.Info(key)
 	assert.Equal(t, 0, len(info.Rules))
 	err = client.DeleteRule(key, destKey)
-	assert.Equal(t, redis.Error("TSDB: compaction rule does not exist"), err)
+	assert.Equal(t, redis.Error("ERR TSDB: compaction rule does not exist"), err)
 }
 
 func TestAdd(t *testing.T) {
