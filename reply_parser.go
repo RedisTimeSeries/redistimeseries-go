@@ -69,6 +69,7 @@ func ParseInfo(result interface{}, err error) (info KeyInfo, outErr error) {
 		case "maxSamplesPerChunk":
 			var v int64
 			v, outErr = redis.Int64(values[i+1], nil)
+			info.MaxSamplesPerChunk = v
 			info.ChunkSize = 16 * v
 		case "chunkSize":
 			info.ChunkSize, outErr = redis.Int64(values[i+1], nil)
