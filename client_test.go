@@ -11,6 +11,34 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// getRedisTimeSeriesVersion returns RedisTimeSeries version by issuing "MODULE LIST" command
+// and iterating through the availabe modules up until "timeseries" is found as the name property
+func (c *Client) getRedisTimeSeriesVersion() (version int64, err error) {
+	conn := client.Pool.Get()
+	defer conn.Close()
+	var values []interface{}
+	var moduleInfo []interface{}
+	var moduleName string
+	values, err = redis.Values(conn.Do("MODULE", "LIST"))
+	if err != nil {
+		return
+	}
+	for _, rawModule := range values {
+		moduleInfo, err = redis.Values(rawModule, err)
+		if err != nil {
+			return
+		}
+		moduleName, err = redis.String(moduleInfo[1], err)
+		if err != nil {
+			return
+		}
+		if moduleName == "timeseries" {
+			version, err = redis.Int64(moduleInfo[3], err)
+		}
+	}
+	return
+}
+
 func getTestConnectionDetails() (string, string) {
 	value, exists := os.LookupEnv("REDISTIMESERIES_TEST_HOST")
 	host := "localhost:6379"
@@ -62,6 +90,17 @@ func TestCreateKey(t *testing.T) {
 
 	err = client.CreateKey("test_CreateKey", tooShortDuration)
 	assert.NotNil(t, err)
+
+	err = client.CreateKeyWithOptions("test_CreateKeyChunkSize", CreateOptions{ChunkSize: 1024})
+	assert.Nil(t, err)
+
+	version, err := client.getRedisTimeSeriesVersion()
+	assert.Nil(t, err)
+	if version >= 14000 {
+		info, err := client.Info("test_CreateKeyChunkSize")
+		assert.Nil(t, err)
+		assert.Equal(t, int64(1024), info.ChunkSize)
+	}
 }
 
 func TestAlterKey(t *testing.T) {

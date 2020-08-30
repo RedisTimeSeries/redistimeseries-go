@@ -11,6 +11,7 @@ func TestCreateOptions_Serialize(t *testing.T) {
 		Uncompressed   bool
 		RetentionMSecs time.Duration
 		Labels         map[string]string
+		ChunkSize      int64
 	}
 	type args struct {
 		args []interface{}
@@ -23,9 +24,10 @@ func TestCreateOptions_Serialize(t *testing.T) {
 		wantErr    bool
 	}{
 		// TODO: Add test cases.
-		{"emtpy", fields{false, 0, map[string]string{}}, args{[]interface{}{}}, []interface{}{}, false},
-		{"UNCOMPRESSED", fields{true, 0, map[string]string{}}, args{[]interface{}{}}, []interface{}{"UNCOMPRESSED"}, false},
-		{"RETENTION", fields{false, 1000000, map[string]string{}}, args{[]interface{}{}}, []interface{}{"RETENTION", int64(1)}, false},
+		{"emtpy", fields{false, 0, map[string]string{}, 0}, args{[]interface{}{}}, []interface{}{}, false},
+		{"UNCOMPRESSED", fields{true, 0, map[string]string{}, 0}, args{[]interface{}{}}, []interface{}{"UNCOMPRESSED"}, false},
+		{"RETENTION", fields{false, 1000000, map[string]string{}, 0}, args{[]interface{}{}}, []interface{}{"RETENTION", int64(1)}, false},
+		{"CHUNK_SIZE", fields{false, 1000000, map[string]string{}, 256}, args{[]interface{}{}}, []interface{}{"RETENTION", int64(1), "CHUNK_SIZE", int64(256)}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -33,6 +35,7 @@ func TestCreateOptions_Serialize(t *testing.T) {
 				Uncompressed:   tt.fields.Uncompressed,
 				RetentionMSecs: tt.fields.RetentionMSecs,
 				Labels:         tt.fields.Labels,
+				ChunkSize:      tt.fields.ChunkSize,
 			}
 			gotResult, err := options.Serialize(tt.args.args)
 			if (err != nil) != tt.wantErr {
