@@ -26,16 +26,20 @@ const (
 
 var aggToString = []AggregationType{AvgAggregation, SumAggregation, MinAggregation, MaxAggregation, CountAggregation, FirstAggregation, LastAggregation, StdPAggregation, StdSAggregation, VarPAggregation, VarSAggregation}
 
+// CreateOptions are a direct mapping to the options provided when creating a new time-series
+// Check https://oss.redislabs.com/redistimeseries/1.4/commands/#tscreate for a detailed description
 type CreateOptions struct {
 	Uncompressed   bool
 	RetentionMSecs time.Duration
 	Labels         map[string]string
+	ChunkSize      int64
 }
 
 var DefaultCreateOptions = CreateOptions{
 	Uncompressed:   false,
 	RetentionMSecs: 0,
 	Labels:         map[string]string{},
+	ChunkSize:      0,
 }
 
 // Client is an interface to time series redis commands
@@ -97,6 +101,9 @@ func (options *CreateOptions) Serialize(args []interface{}) (result []interface{
 			return
 		}
 		result = append(result, "RETENTION", value)
+	}
+	if options.ChunkSize > 0 {
+		result = append(result, "CHUNK_SIZE", options.ChunkSize)
 	}
 	if len(options.Labels) > 0 {
 		result = append(result, "LABELS")
