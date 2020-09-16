@@ -12,7 +12,7 @@ func TestCreateOptions_Serialize(t *testing.T) {
 		RetentionMSecs  time.Duration
 		Labels          map[string]string
 		ChunkSize       int64
-		DuplicatePolicy DuplicatePolicy
+		DuplicatePolicy DuplicatePolicyType
 	}
 	type args struct {
 		args []interface{}
@@ -110,7 +110,7 @@ func TestCreateOptions_SerializeSeriesOptions(t *testing.T) {
 		RetentionMSecs  time.Duration
 		Labels          map[string]string
 		ChunkSize       int64
-		DuplicatePolicy DuplicatePolicy
+		DuplicatePolicy DuplicatePolicyType
 	}
 	type args struct {
 		cmd  string

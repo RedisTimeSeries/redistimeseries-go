@@ -10,8 +10,8 @@ import (
 //go:generate stringer -type=AggregationType
 type AggregationType string
 
-//go:generate stringer -type=AggregationType
-type DuplicatePolicy string
+//go:generate stringer -type=DuplicatePolicyType
+type DuplicatePolicyType string
 
 const (
 	AvgAggregation   AggregationType = "AVG"
@@ -28,11 +28,11 @@ const (
 )
 
 const (
-	BlockDuplicatePolicy DuplicatePolicy = "block" // an error will occur for any out of order sample
-	FirstDuplicatePolicy DuplicatePolicy = "first" // ignore the new value
-	LastDuplicatePolicy  DuplicatePolicy = "last"  // override with latest value
-	MinDuplicatePolicy   DuplicatePolicy = "min"   // only override if the value is lower than the existing value
-	MaxDuplicatePolicy   DuplicatePolicy = "max"   // only override if the value is higher than the existing value
+	BlockDuplicatePolicy DuplicatePolicyType = "block" // an error will occur for any out of order sample
+	FirstDuplicatePolicy DuplicatePolicyType = "first" // ignore the new value
+	LastDuplicatePolicy  DuplicatePolicyType = "last"  // override with latest value
+	MinDuplicatePolicy   DuplicatePolicyType = "min"   // only override if the value is lower than the existing value
+	MaxDuplicatePolicy   DuplicatePolicyType = "max"   // only override if the value is higher than the existing value
 )
 
 var aggToString = []AggregationType{AvgAggregation, SumAggregation, MinAggregation, MaxAggregation, CountAggregation, FirstAggregation, LastAggregation, StdPAggregation, StdSAggregation, VarPAggregation, VarSAggregation}
@@ -44,7 +44,7 @@ type CreateOptions struct {
 	RetentionMSecs  time.Duration
 	Labels          map[string]string
 	ChunkSize       int64
-	DuplicatePolicy DuplicatePolicy
+	DuplicatePolicy DuplicatePolicyType
 }
 
 var DefaultCreateOptions = CreateOptions{
@@ -79,7 +79,7 @@ type KeyInfo struct {
 	RetentionTime      int64
 	Rules              []Rule
 	Labels             map[string]string
-	DuplicatePolicy    DuplicatePolicy // Duplicate sample policy
+	DuplicatePolicy    DuplicatePolicyType // Duplicate sample policy
 }
 
 type DataPoint struct {

@@ -16,7 +16,7 @@ func toAggregationType(aggType interface{}) (aggTypeStr AggregationType, err err
 	return
 }
 
-func toDuplicatePolicy(duplicatePolicy interface{}) (duplicatePolicyStr DuplicatePolicy, err error) {
+func toDuplicatePolicy(duplicatePolicy interface{}) (duplicatePolicyStr DuplicatePolicyType, err error) {
 	duplicatePolicyStr = ""
 	if duplicatePolicy == nil {
 		return
@@ -25,7 +25,7 @@ func toDuplicatePolicy(duplicatePolicy interface{}) (duplicatePolicyStr Duplicat
 	if err != nil {
 		return
 	}
-	duplicatePolicyStr = (DuplicatePolicy)(policy)
+	duplicatePolicyStr = (DuplicatePolicyType)(policy)
 	return
 }
 
