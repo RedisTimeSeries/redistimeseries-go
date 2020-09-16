@@ -22,6 +22,30 @@ func ExampleNewClientFromPool() {
 	// Output: {1 5}
 }
 
+// Exemplifies the usage of CreateKeyWithOptions function with a duplicate policy of LAST (override with latest value)
+// nolint:errcheck
+func ExampleClient_CreateKeyWithOptions() {
+	host := "localhost:6379"
+	password := ""
+	pool := &redis.Pool{Dial: func() (redis.Conn, error) {
+		return redis.Dial("tcp", host, redis.DialPassword(password))
+	}}
+	client := redistimeseries.NewClientFromPool(pool, "ts-client-1")
+
+	client.CreateKeyWithOptions("time-serie-last-policy", redistimeseries.CreateOptions{DuplicatePolicy: redistimeseries.LastDuplicatePolicy})
+
+	// Add duplicate timestamp just to ensure it obeys the duplicate policy
+	client.Add("time-serie-last-policy", 4, 2.0)
+	client.Add("time-serie-last-policy", 4, 10.0)
+
+	// Retrieve the latest data point
+	latestDatapoint, _ := client.Get("time-serie-last-policy")
+
+	fmt.Printf("Latest datapoint: timestamp=%d value=%f\n", latestDatapoint.Timestamp, latestDatapoint.Value)
+	// Output:
+	// Latest datapoint: timestamp=4 value=10.000000
+}
+
 // Exemplifies the usage of RangeWithOptions function
 // nolint:errcheck
 func ExampleClient_RangeWithOptions() {
@@ -156,6 +180,37 @@ func ExampleClient_MultiGetWithOptions() {
 	// Output:
 	// Ranges: [{time-serie-1 map[] [{4 2}]} {time-serie-2 map[] [{4 10}]}]
 	// Ranges with labels: [{time-serie-1 map[az:us-east-1 machine:machine-1] [{4 2}]} {time-serie-2 map[az:us-east-1 machine:machine-2] [{4 10}]}]
+}
+
+// Exemplifies the usage of AddWithOptions function with a duplicate policy of LAST (override with latest value)
+// nolint:errcheck
+func ExampleClient_AddWithOptions() {
+	host := "localhost:6379"
+	password := ""
+	pool := &redis.Pool{Dial: func() (redis.Conn, error) {
+		return redis.Dial("tcp", host, redis.DialPassword(password))
+	}}
+	client := redistimeseries.NewClientFromPool(pool, "ts-client")
+
+	labels := map[string]string{
+		"machine": "machine-1",
+		"az":      "us-east-1",
+	}
+
+	// get the default options and set the duplicate policy to LAST (override with latest value)
+	options := redistimeseries.DefaultCreateOptions
+	options.DuplicatePolicy = redistimeseries.LastDuplicatePolicy
+	options.Labels = labels
+
+	client.AddWithOptions("time-series-example-add", 1, 1, options)
+	client.AddWithOptions("time-series-example-add", 1, 10, options)
+
+	// Retrieve the latest data point
+	latestDatapoint, _ := client.Get("time-series-example-add")
+
+	fmt.Printf("Latest datapoint: timestamp=%d value=%f\n", latestDatapoint.Timestamp, latestDatapoint.Value)
+	// Output:
+	// Latest datapoint: timestamp=1 value=10.000000
 }
 
 // Exemplifies the usage of MultiAdd.

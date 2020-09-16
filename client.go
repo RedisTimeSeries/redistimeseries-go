@@ -53,7 +53,7 @@ func (client *Client) CreateKeyWithOptions(key string, options CreateOptions) (e
 	defer conn.Close()
 
 	args := []interface{}{key}
-	args, err = options.Serialize(args)
+	args, err = options.SerializeSeriesOptions("TS.CREATE", args)
 	if err != nil {
 		return
 	}
@@ -67,7 +67,7 @@ func (client *Client) AlterKeyWithOptions(key string, options CreateOptions) (er
 	defer conn.Close()
 
 	args := []interface{}{key}
-	args, err = options.Serialize(args)
+	args, err = options.SerializeSeriesOptions("TS.ALTER", args)
 	if err != nil {
 		return
 	}
@@ -107,7 +107,7 @@ func (client *Client) AddWithOptions(key string, timestamp int64, value float64,
 	defer conn.Close()
 
 	args := []interface{}{key, timestamp, floatToStr(value)}
-	args, err = options.Serialize(args)
+	args, err = options.SerializeSeriesOptions("TS.ADD", args)
 	if err != nil {
 		return
 	}
@@ -123,7 +123,7 @@ func (client *Client) AddAutoTsWithOptions(key string, value float64, options Cr
 	conn := client.Pool.Get()
 	defer conn.Close()
 	args := []interface{}{key, "*", floatToStr(value)}
-	args, err = options.Serialize(args)
+	args, err = options.SerializeSeriesOptions("TS.ADD", args)
 	if err != nil {
 		return
 	}

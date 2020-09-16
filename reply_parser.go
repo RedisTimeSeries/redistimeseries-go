@@ -16,6 +16,19 @@ func toAggregationType(aggType interface{}) (aggTypeStr AggregationType, err err
 	return
 }
 
+func toDuplicatePolicy(duplicatePolicy interface{}) (duplicatePolicyStr DuplicatePolicy, err error) {
+	duplicatePolicyStr = ""
+	if duplicatePolicy == nil {
+		return
+	}
+	policy, err := redis.String(duplicatePolicy, nil)
+	if err != nil {
+		return
+	}
+	duplicatePolicyStr = (DuplicatePolicy)(policy)
+	return
+}
+
 func ParseRules(ruleInterface interface{}, err error) (rules []Rule, retErr error) {
 	if err != nil {
 		return nil, err
@@ -77,8 +90,10 @@ func ParseInfo(result interface{}, err error) (info KeyInfo, outErr error) {
 			info.LastTimestamp, outErr = redis.Int64(values[i+1], nil)
 		case "labels":
 			info.Labels, outErr = ParseLabels(values[i+1])
+		case "duplicatePolicy":
+			info.DuplicatePolicy, outErr = toDuplicatePolicy(values[i+1])
 		}
-		if err != nil {
+		if outErr != nil {
 			return KeyInfo{}, outErr
 		}
 	}

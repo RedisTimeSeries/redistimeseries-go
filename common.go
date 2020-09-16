@@ -10,6 +10,9 @@ import (
 //go:generate stringer -type=AggregationType
 type AggregationType string
 
+//go:generate stringer -type=AggregationType
+type DuplicatePolicy string
+
 const (
 	AvgAggregation   AggregationType = "AVG"
 	SumAggregation   AggregationType = "SUM"
@@ -24,22 +27,32 @@ const (
 	VarSAggregation  AggregationType = "VAR.S"
 )
 
+const (
+	BlockDuplicatePolicy DuplicatePolicy = "block" // an error will occur for any out of order sample
+	FirstDuplicatePolicy DuplicatePolicy = "first" // ignore the new value
+	LastDuplicatePolicy  DuplicatePolicy = "last"  // override with latest value
+	MinDuplicatePolicy   DuplicatePolicy = "min"   // only override if the value is lower than the existing value
+	MaxDuplicatePolicy   DuplicatePolicy = "max"   // only override if the value is higher than the existing value
+)
+
 var aggToString = []AggregationType{AvgAggregation, SumAggregation, MinAggregation, MaxAggregation, CountAggregation, FirstAggregation, LastAggregation, StdPAggregation, StdSAggregation, VarPAggregation, VarSAggregation}
 
 // CreateOptions are a direct mapping to the options provided when creating a new time-series
 // Check https://oss.redislabs.com/redistimeseries/1.4/commands/#tscreate for a detailed description
 type CreateOptions struct {
-	Uncompressed   bool
-	RetentionMSecs time.Duration
-	Labels         map[string]string
-	ChunkSize      int64
+	Uncompressed    bool
+	RetentionMSecs  time.Duration
+	Labels          map[string]string
+	ChunkSize       int64
+	DuplicatePolicy DuplicatePolicy
 }
 
 var DefaultCreateOptions = CreateOptions{
-	Uncompressed:   false,
-	RetentionMSecs: 0,
-	Labels:         map[string]string{},
-	ChunkSize:      0,
+	Uncompressed:    false,
+	RetentionMSecs:  0,
+	Labels:          map[string]string{},
+	ChunkSize:       0,
+	DuplicatePolicy: "",
 }
 
 // Client is an interface to time series redis commands
@@ -66,6 +79,7 @@ type KeyInfo struct {
 	RetentionTime      int64
 	Rules              []Rule
 	Labels             map[string]string
+	DuplicatePolicy    DuplicatePolicy // Duplicate sample policy
 }
 
 type DataPoint struct {
@@ -88,7 +102,21 @@ type Range struct {
 	DataPoints []DataPoint
 }
 
+// Serialize options to args. Given that DUPLICATE_POLICY and ON_DUPLICATE depend upon the issuing command we need to specify the command for which we are generating the args for
+func (options *CreateOptions) SerializeSeriesOptions(cmd string, args []interface{}) (result []interface{}, err error) {
+	result = args
+	if options.DuplicatePolicy != "" {
+		if cmd == "TS.ADD" {
+			result = append(result, "ON_DUPLICATE", string(options.DuplicatePolicy))
+		} else {
+			result = append(result, "DUPLICATE_POLICY", string(options.DuplicatePolicy))
+		}
+	}
+	return options.Serialize(result)
+}
+
 // Serialize options to args
+// Deprecated: This function has been deprecated given that DUPLICATE_POLICY and ON_DUPLICATE depend upon the issuing command, use SerializeSeriesOptions instead
 func (options *CreateOptions) Serialize(args []interface{}) (result []interface{}, err error) {
 	result = args
 	if options.Uncompressed {
