@@ -53,11 +53,11 @@ func (client *Client) CreateKeyWithOptions(key string, options CreateOptions) (e
 	defer conn.Close()
 
 	args := []interface{}{key}
-	args, err = options.Serialize(args)
+	args, err = options.SerializeSeriesOptions(CREATE_CMD, args)
 	if err != nil {
 		return
 	}
-	_, err = conn.Do("TS.CREATE", args...)
+	_, err = conn.Do(CREATE_CMD, args...)
 	return err
 }
 
@@ -67,11 +67,11 @@ func (client *Client) AlterKeyWithOptions(key string, options CreateOptions) (er
 	defer conn.Close()
 
 	args := []interface{}{key}
-	args, err = options.Serialize(args)
+	args, err = options.SerializeSeriesOptions(ALTER_CMD, args)
 	if err != nil {
 		return
 	}
-	_, err = conn.Do("TS.ALTER", args...)
+	_, err = conn.Do(ALTER_CMD, args...)
 	return err
 }
 
@@ -83,7 +83,7 @@ func (client *Client) AlterKeyWithOptions(key string, options CreateOptions) (er
 func (client *Client) Add(key string, timestamp int64, value float64) (storedTimestamp int64, err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
-	return redis.Int64(conn.Do("TS.ADD", key, timestamp, floatToStr(value)))
+	return redis.Int64(conn.Do(ADD_CMD, key, timestamp, floatToStr(value)))
 }
 
 // AddAutoTs - Append (or create and append) a new sample to the series, with DB automatic timestamp (using the system clock)
@@ -93,7 +93,7 @@ func (client *Client) Add(key string, timestamp int64, value float64) (storedTim
 func (client *Client) AddAutoTs(key string, value float64) (storedTimestamp int64, err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
-	return redis.Int64(conn.Do("TS.ADD", key, "*", floatToStr(value)))
+	return redis.Int64(conn.Do(ADD_CMD, key, "*", floatToStr(value)))
 }
 
 // AddWithOptions - Append (or create and append) a new sample to the series, with the specified CreateOptions
@@ -107,11 +107,11 @@ func (client *Client) AddWithOptions(key string, timestamp int64, value float64,
 	defer conn.Close()
 
 	args := []interface{}{key, timestamp, floatToStr(value)}
-	args, err = options.Serialize(args)
+	args, err = options.SerializeSeriesOptions(ADD_CMD, args)
 	if err != nil {
 		return
 	}
-	return redis.Int64(conn.Do("TS.ADD", args...))
+	return redis.Int64(conn.Do(ADD_CMD, args...))
 }
 
 // AddAutoTsWithOptions - Append (or create and append) a new sample to the series, with the specified CreateOptions and DB automatic timestamp (using the system clock)
@@ -123,11 +123,11 @@ func (client *Client) AddAutoTsWithOptions(key string, value float64, options Cr
 	conn := client.Pool.Get()
 	defer conn.Close()
 	args := []interface{}{key, "*", floatToStr(value)}
-	args, err = options.Serialize(args)
+	args, err = options.SerializeSeriesOptions(ADD_CMD, args)
 	if err != nil {
 		return
 	}
-	return redis.Int64(conn.Do("TS.ADD", args...))
+	return redis.Int64(conn.Do(ADD_CMD, args...))
 }
 
 // AddWithRetention - append a new value to the series with a duration
@@ -154,7 +154,7 @@ func (client *Client) AddWithRetention(key string, timestamp int64, value float6
 func (client *Client) CreateRule(sourceKey string, aggType AggregationType, bucketSizeMSec uint, destinationKey string) (err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
-	_, err = conn.Do("TS.CREATERULE", sourceKey, destinationKey, "AGGREGATION", aggType, bucketSizeMSec)
+	_, err = conn.Do(CREATERULE_CMD, sourceKey, destinationKey, "AGGREGATION", aggType, bucketSizeMSec)
 	return err
 }
 
@@ -165,7 +165,7 @@ func (client *Client) CreateRule(sourceKey string, aggType AggregationType, buck
 func (client *Client) DeleteRule(sourceKey string, destinationKey string) (err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
-	_, err = conn.Do("TS.DELETERULE", sourceKey, destinationKey)
+	_, err = conn.Do(DELETERULE_CMD, sourceKey, destinationKey)
 	return err
 }
 
@@ -202,7 +202,7 @@ func (client *Client) AggRange(key string, fromTimestamp int64, toTimestamp int6
 // toTimestamp - end of range. You can use TimeRangeFull or TimeRangeMaximum to express the maximum possible timestamp.
 // rangeOptions - RangeOptions options. You can use the default DefaultRangeOptions
 func (client *Client) RangeWithOptions(key string, fromTimestamp int64, toTimestamp int64, rangeOptions RangeOptions) (dataPoints []DataPoint, err error) {
-	return client.rangeWithOptions("TS.RANGE", key, fromTimestamp, toTimestamp, rangeOptions)
+	return client.rangeWithOptions(RANGE_CMD, key, fromTimestamp, toTimestamp, rangeOptions)
 }
 
 // ReverseRangeWithOptions - Query a timestamp range on a specific time-series in reverse order
@@ -212,7 +212,7 @@ func (client *Client) RangeWithOptions(key string, fromTimestamp int64, toTimest
 // toTimestamp - end of range. You can use TimeRangeFull or TimeRangeMaximum to express the maximum possible timestamp.
 // rangeOptions - RangeOptions options. You can use the default DefaultRangeOptions
 func (client *Client) ReverseRangeWithOptions(key string, fromTimestamp int64, toTimestamp int64, rangeOptions RangeOptions) (dataPoints []DataPoint, err error) {
-	return client.rangeWithOptions("TS.REVRANGE", key, fromTimestamp, toTimestamp, rangeOptions)
+	return client.rangeWithOptions(REVRANGE_CMD, key, fromTimestamp, toTimestamp, rangeOptions)
 }
 
 // rangeWithOptions - Query a timestamp range on a specific time-series in some order
@@ -257,7 +257,7 @@ func (client *Client) AggMultiRange(fromTimestamp int64, toTimestamp int64, aggT
 // mrangeOptions - MultiRangeOptions options. You can use the default DefaultMultiRangeOptions
 // filters - list of filters e.g. "a=bb", "b!=aa"
 func (client *Client) MultiRangeWithOptions(fromTimestamp int64, toTimestamp int64, mrangeOptions MultiRangeOptions, filters ...string) (ranges []Range, err error) {
-	return client.multiRangeWithOptions("TS.MRANGE", fromTimestamp, toTimestamp, mrangeOptions, filters)
+	return client.multiRangeWithOptions(MRANGE_CMD, fromTimestamp, toTimestamp, mrangeOptions, filters)
 }
 
 // MultiReverseRangeWithOptions - Query a timestamp range across multiple time-series by filters, in reverse direction.
@@ -267,7 +267,7 @@ func (client *Client) MultiRangeWithOptions(fromTimestamp int64, toTimestamp int
 // mrangeOptions - MultiRangeOptions options. You can use the default DefaultMultiRangeOptions
 // filters - list of filters e.g. "a=bb", "b!=aa"
 func (client *Client) MultiReverseRangeWithOptions(fromTimestamp int64, toTimestamp int64, mrangeOptions MultiRangeOptions, filters ...string) (ranges []Range, err error) {
-	return client.multiRangeWithOptions("TS.MREVRANGE", fromTimestamp, toTimestamp, mrangeOptions, filters)
+	return client.multiRangeWithOptions(MREVRANGE_CMD, fromTimestamp, toTimestamp, mrangeOptions, filters)
 }
 
 func (client *Client) multiRangeWithOptions(cmd string, fromTimestamp int64, toTimestamp int64, mrangeOptions MultiRangeOptions, filters []string) (ranges []Range, err error) {
@@ -290,7 +290,7 @@ func (client *Client) Get(key string) (dataPoint *DataPoint,
 	err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
-	resp, err := conn.Do("TS.GET", key)
+	resp, err := conn.Do(GET_CMD, key)
 	if err != nil {
 		return nil, err
 	}
@@ -317,7 +317,7 @@ func (client *Client) MultiGetWithOptions(multiGetOptions MultiGetOptions, filte
 		return
 	}
 	args := createMultiGetCmdArguments(multiGetOptions, filters)
-	reply, err = conn.Do("TS.MGET", args...)
+	reply, err = conn.Do(MGET_CMD, args...)
 	if err != nil {
 		return
 	}
@@ -331,7 +331,7 @@ func (client *Client) MultiGetWithOptions(multiGetOptions MultiGetOptions, filte
 func (client *Client) Info(key string) (res KeyInfo, err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
-	res, err = ParseInfo(conn.Do("TS.INFO", key))
+	res, err = ParseInfo(conn.Do(INFO_CMD, key))
 	return res, err
 }
 
@@ -348,7 +348,7 @@ func (client *Client) QueryIndex(filters ...string) (keys []string, err error) {
 	for _, filter := range filters {
 		args = args.Add(filter)
 	}
-	return redis.Strings(conn.Do("TS.QUERYINDEX", args...))
+	return redis.Strings(conn.Do(QUERYINDEX_CMD, args...))
 }
 
 // Creates a new sample that increments the latest sample's value
@@ -360,7 +360,7 @@ func (client *Client) IncrBy(key string, timestamp int64, value float64, options
 	if err != nil {
 		return -1, err
 	}
-	return redis.Int64(conn.Do("TS.INCRBY", args...))
+	return redis.Int64(conn.Do(INCRBY_CMD, args...))
 }
 
 // Creates a new sample that decrements the latest sample's value
@@ -372,7 +372,7 @@ func (client *Client) DecrBy(key string, timestamp int64, value float64, options
 	if err != nil {
 		return -1, err
 	}
-	return redis.Int64(conn.Do("TS.DECRBY", args...))
+	return redis.Int64(conn.Do(DECRBY_CMD, args...))
 }
 
 // Add counter args for command TS.INCRBY/TS.DECRBY
@@ -398,5 +398,5 @@ func (client *Client) MultiAdd(samples ...Sample) (timestamps []interface{}, err
 	for _, sample := range samples {
 		args = args.Add(sample.Key, sample.DataPoint.Timestamp, sample.DataPoint.Value)
 	}
-	return redis.Values(conn.Do("TS.MADD", args...))
+	return redis.Values(conn.Do(MADD_CMD, args...))
 }

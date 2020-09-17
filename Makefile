@@ -1,6 +1,7 @@
 # Go parameters
 GOCMD=GO111MODULE=on go
 GOBUILD=$(GOCMD) build
+GODOC=GO111MODULE=on godoc
 GOINSTALL=$(GOCMD) install
 GOCLEAN=$(GOCMD) clean
 GOTEST=$(GOCMD) test
@@ -22,6 +23,10 @@ checkfmt:
 
 lint:
 	@golangci-lint run
+
+doc:
+	$(GODOC)
+
 get:
 	$(GOGET) -t -v ./...
 
