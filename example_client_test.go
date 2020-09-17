@@ -5,6 +5,7 @@ import (
 	redistimeseries "github.com/RedisTimeSeries/redistimeseries-go"
 	"github.com/gomodule/redigo/redis"
 	"log"
+	"time"
 )
 
 // exemplifies the NewClientFromPool function
@@ -44,6 +45,244 @@ func ExampleClient_CreateKeyWithOptions() {
 	fmt.Printf("Latest datapoint: timestamp=%d value=%f\n", latestDatapoint.Timestamp, latestDatapoint.Value)
 	// Output:
 	// Latest datapoint: timestamp=4 value=10.000000
+}
+
+// Exemplifies the usage of CreateKeyWithOptions function with a retention time of 1 hour
+// nolint:errcheck
+func ExampleClient_CreateKeyWithOptions_retentionTime() {
+	host := "localhost:6379"
+	password := ""
+	pool := &redis.Pool{Dial: func() (redis.Conn, error) {
+		return redis.Dial("tcp", host, redis.DialPassword(password))
+	}}
+	client := redistimeseries.NewClientFromPool(pool, "ts-client")
+
+	// get the default options and set the retention time
+	options := redistimeseries.DefaultCreateOptions
+	options.RetentionMSecs = time.Hour
+
+	client.CreateKeyWithOptions("time-series-example-retention-time", options)
+
+	client.Add("time-series-example-retention-time", 1, 1)
+	client.Add("time-series-example-retention-time", 2, 2)
+
+	// Retrieve the latest data point
+	latestDatapoint, _ := client.Get("time-series-example-retention-time")
+
+	fmt.Printf("Latest datapoint: timestamp=%d value=%f\n", latestDatapoint.Timestamp, latestDatapoint.Value)
+	// Output:
+	// Latest datapoint: timestamp=2 value=2.000000
+}
+
+// Exemplifies the usage of Add function with a time-series created with the default options
+// nolint:errcheck
+func ExampleClient_Add() {
+	host := "localhost:6379"
+	password := ""
+	pool := &redis.Pool{Dial: func() (redis.Conn, error) {
+		return redis.Dial("tcp", host, redis.DialPassword(password))
+	}}
+	client := redistimeseries.NewClientFromPool(pool, "ts-client-1")
+
+	labels := map[string]string{
+		"machine": "machine-1",
+		"az":      "us-west-2",
+	}
+	// get the default options and set the time-serie labels
+	options := redistimeseries.DefaultCreateOptions
+	options.Labels = labels
+
+	client.CreateKeyWithOptions("time-serie-add", options)
+
+	client.Add("time-serie-add", 1, 2.0)
+	client.Add("time-serie-add", 2, 4.0)
+
+	// Retrieve the latest data point
+	latestDatapoint, _ := client.Get("time-serie-add")
+
+	fmt.Printf("Latest datapoint: timestamp=%d value=%f\n", latestDatapoint.Timestamp, latestDatapoint.Value)
+	// Output:
+	// Latest datapoint: timestamp=2 value=4.000000
+}
+
+// Exemplifies the usage of Add function for back filling - Add samples to a time series where the time of the sample is older than the newest sample in the series
+// nolint:errcheck
+func ExampleClient_Add_backFilling() {
+	host := "localhost:6379"
+	password := ""
+	pool := &redis.Pool{Dial: func() (redis.Conn, error) {
+		return redis.Dial("tcp", host, redis.DialPassword(password))
+	}}
+	client := redistimeseries.NewClientFromPool(pool, "ts-client-1")
+
+	// get the default options and set the time-serie labels
+	options := redistimeseries.DefaultCreateOptions
+
+	client.CreateKeyWithOptions("time-serie-add-back-filling", options)
+
+	client.Add("time-serie-add-back-filling", 1, 1)
+	client.Add("time-serie-add-back-filling", 2, 1)
+	client.Add("time-serie-add-back-filling", 4, 1)
+	// Add sample with timestamp ( 3 ) where the time of the sample is older than the newest sample in the series ( 4 )
+	client.Add("time-serie-add-back-filling", 3, 1)
+
+	// Retrieve the time-series data points
+	datapoints, _ := client.RangeWithOptions("time-serie-add-back-filling", 0, 1000, redistimeseries.DefaultRangeOptions)
+	fmt.Printf("Datapoints: %v\n", datapoints)
+	// Output:
+	// Datapoints: [{1 1} {2 1} {3 1} {4 1}]
+}
+
+// Exemplifies the usage of Add function with a duplicate policy of LAST (override with latest value)
+// nolint:errcheck
+func ExampleClient_Add_duplicateDatapointsLastDuplicatePolicy() {
+	host := "localhost:6379"
+	password := ""
+	pool := &redis.Pool{Dial: func() (redis.Conn, error) {
+		return redis.Dial("tcp", host, redis.DialPassword(password))
+	}}
+	client := redistimeseries.NewClientFromPool(pool, "ts-client-1")
+
+	// get the default options and set the duplicate policy to LAST (override with latest value)
+	options := redistimeseries.DefaultCreateOptions
+	options.DuplicatePolicy = redistimeseries.LastDuplicatePolicy
+
+	client.CreateKeyWithOptions("time-series-add-duplicate-last", options)
+
+	client.Add("time-series-add-duplicate-last", 1, 1.0)
+	client.Add("time-series-add-duplicate-last", 1, 10.0)
+
+	// Retrieve the latest data point
+	latestDatapoint, _ := client.Get("time-series-add-duplicate-last")
+
+	fmt.Printf("Latest datapoint: timestamp=%d value=%f\n", latestDatapoint.Timestamp, latestDatapoint.Value)
+	// Output:
+	// Latest datapoint: timestamp=1 value=10.000000
+}
+
+// Exemplifies the usage of AddWithOptions function with the default options and some additional time-serie labels
+// nolint:errcheck
+func ExampleClient_AddWithOptions() {
+	host := "localhost:6379"
+	password := ""
+	pool := &redis.Pool{Dial: func() (redis.Conn, error) {
+		return redis.Dial("tcp", host, redis.DialPassword(password))
+	}}
+	client := redistimeseries.NewClientFromPool(pool, "ts-client")
+
+	labels := map[string]string{
+		"machine": "machine-1",
+		"az":      "us-west-2",
+	}
+	// get the default options and set the time-serie labels
+	options := redistimeseries.DefaultCreateOptions
+	options.Labels = labels
+
+	client.AddWithOptions("time-series-example-add", 1, 1, options)
+	client.AddWithOptions("time-series-example-add", 2, 2, options)
+
+	// Retrieve the latest data point
+	latestDatapoint, _ := client.Get("time-series-example-add")
+
+	fmt.Printf("Latest datapoint: timestamp=%d value=%f\n", latestDatapoint.Timestamp, latestDatapoint.Value)
+	// Output:
+	// Latest datapoint: timestamp=2 value=2.000000
+}
+
+// Exemplifies the usage of AddWithOptions function with a duplicate policy of LAST (override with latest value)
+// nolint:errcheck
+func ExampleClient_AddWithOptions_duplicateDatapointsLastDuplicatePolicy() {
+	host := "localhost:6379"
+	password := ""
+	pool := &redis.Pool{Dial: func() (redis.Conn, error) {
+		return redis.Dial("tcp", host, redis.DialPassword(password))
+	}}
+	client := redistimeseries.NewClientFromPool(pool, "ts-client")
+
+	labels := map[string]string{
+		"machine": "machine-1",
+		"az":      "us-west-2",
+	}
+
+	// get the default options and set the duplicate policy to LAST (override with latest value)
+	options := redistimeseries.DefaultCreateOptions
+	options.DuplicatePolicy = redistimeseries.LastDuplicatePolicy
+	options.Labels = labels
+
+	client.AddWithOptions("time-series-example-duplicate-last", 1, 1, options)
+	client.AddWithOptions("time-series-example-duplicate-last", 1, 10, options)
+
+	// Retrieve the latest data point
+	latestDatapoint, _ := client.Get("time-series-example-duplicate-last")
+
+	fmt.Printf("Latest datapoint: timestamp=%d value=%f\n", latestDatapoint.Timestamp, latestDatapoint.Value)
+	// Output:
+	// Latest datapoint: timestamp=1 value=10.000000
+}
+
+// Exemplifies the usage of AddWithOptions function with a duplicate policy of MAX (only override if the value is higher than the existing value)
+// nolint:errcheck
+func ExampleClient_AddWithOptions_duplicateDatapointsMaxDuplicatePolicy() {
+	host := "localhost:6379"
+	password := ""
+	pool := &redis.Pool{Dial: func() (redis.Conn, error) {
+		return redis.Dial("tcp", host, redis.DialPassword(password))
+	}}
+	client := redistimeseries.NewClientFromPool(pool, "ts-client")
+
+	labels := map[string]string{
+		"machine": "machine-1",
+		"az":      "us-west-2",
+	}
+
+	// get the default options and set the duplicate policy to MAX (only override if the value is higher than the existing value)
+	options := redistimeseries.DefaultCreateOptions
+	options.DuplicatePolicy = redistimeseries.MaxDuplicatePolicy
+	options.Labels = labels
+
+	client.AddWithOptions("time-series-example-duplicate-max", 1, 10.0, options)
+
+	// this should not override the value given that the previous one ( 10.0 ) is greater than the new one we're trying to add
+	client.AddWithOptions("time-series-example-duplicate-max", 1, 5.0, options)
+
+	// Retrieve the latest data point
+	latestDatapoint, _ := client.Get("time-series-example-duplicate-max")
+
+	fmt.Printf("Latest datapoint: timestamp=%d value=%f\n", latestDatapoint.Timestamp, latestDatapoint.Value)
+	// Output:
+	// Latest datapoint: timestamp=1 value=10.000000
+}
+
+// Exemplifies the usage of AddWithOptions function for back filling - Add samples to a time series where the time of the sample is older than the newest sample in the series
+// nolint:errcheck
+func ExampleClient_AddWithOptions_backFilling() {
+	host := "localhost:6379"
+	password := ""
+	pool := &redis.Pool{Dial: func() (redis.Conn, error) {
+		return redis.Dial("tcp", host, redis.DialPassword(password))
+	}}
+	client := redistimeseries.NewClientFromPool(pool, "ts-client")
+
+	labels := map[string]string{
+		"machine": "machine-1",
+		"az":      "us-west-2",
+	}
+
+	// use the default options
+	options := redistimeseries.DefaultCreateOptions
+	options.Labels = labels
+
+	client.AddWithOptions("time-series-example-back-filling", 1, 1, options)
+	client.AddWithOptions("time-series-example-back-filling", 2, 1, options)
+	client.AddWithOptions("time-series-example-back-filling", 4, 1, options)
+	// Add sample with timestamp ( 3 ) where the time of the sample is older than the newest sample in the series ( 4 )
+	client.AddWithOptions("time-series-example-back-filling", 3, 1, options)
+
+	// Retrieve the time-series data points
+	datapoints, _ := client.RangeWithOptions("time-series-example-back-filling", 0, 1000, redistimeseries.DefaultRangeOptions)
+	fmt.Printf("Datapoints: %v\n", datapoints)
+	// Output:
+	// Datapoints: [{1 1} {2 1} {3 1} {4 1}]
 }
 
 // Exemplifies the usage of RangeWithOptions function
@@ -180,37 +419,6 @@ func ExampleClient_MultiGetWithOptions() {
 	// Output:
 	// Ranges: [{time-serie-1 map[] [{4 2}]} {time-serie-2 map[] [{4 10}]}]
 	// Ranges with labels: [{time-serie-1 map[az:us-east-1 machine:machine-1] [{4 2}]} {time-serie-2 map[az:us-east-1 machine:machine-2] [{4 10}]}]
-}
-
-// Exemplifies the usage of AddWithOptions function with a duplicate policy of LAST (override with latest value)
-// nolint:errcheck
-func ExampleClient_AddWithOptions() {
-	host := "localhost:6379"
-	password := ""
-	pool := &redis.Pool{Dial: func() (redis.Conn, error) {
-		return redis.Dial("tcp", host, redis.DialPassword(password))
-	}}
-	client := redistimeseries.NewClientFromPool(pool, "ts-client")
-
-	labels := map[string]string{
-		"machine": "machine-1",
-		"az":      "us-east-1",
-	}
-
-	// get the default options and set the duplicate policy to LAST (override with latest value)
-	options := redistimeseries.DefaultCreateOptions
-	options.DuplicatePolicy = redistimeseries.LastDuplicatePolicy
-	options.Labels = labels
-
-	client.AddWithOptions("time-series-example-add", 1, 1, options)
-	client.AddWithOptions("time-series-example-add", 1, 10, options)
-
-	// Retrieve the latest data point
-	latestDatapoint, _ := client.Get("time-series-example-add")
-
-	fmt.Printf("Latest datapoint: timestamp=%d value=%f\n", latestDatapoint.Timestamp, latestDatapoint.Value)
-	// Output:
-	// Latest datapoint: timestamp=1 value=10.000000
 }
 
 // Exemplifies the usage of MultiAdd.
