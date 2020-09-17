@@ -28,6 +28,25 @@ const (
 )
 
 const (
+	CREATE_CMD     string = "TS.CREATE"
+	ALTER_CMD      string = "TS.ALTER"
+	ADD_CMD        string = "TS.ADD"
+	MADD_CMD       string = "TS.MADD"
+	INCRBY_CMD     string = "TS.INCRBY"
+	DECRBY_CMD     string = "TS.DECRBY"
+	CREATERULE_CMD string = "TS.CREATERULE"
+	DELETERULE_CMD string = "TS.DELETERULE"
+	RANGE_CMD      string = "TS.RANGE"
+	REVRANGE_CMD   string = "TS.REVRANGE"
+	MRANGE_CMD     string = "TS.MRANGE"
+	MREVRANGE_CMD  string = "TS.MREVRANGE"
+	GET_CMD        string = "TS.GET"
+	MGET_CMD       string = "TS.MGET"
+	INFO_CMD       string = "TS.INFO"
+	QUERYINDEX_CMD string = "TS.QUERYINDEX"
+)
+
+const (
 	BlockDuplicatePolicy DuplicatePolicyType = "block" // an error will occur for any out of order sample
 	FirstDuplicatePolicy DuplicatePolicyType = "first" // ignore the new value
 	LastDuplicatePolicy  DuplicatePolicyType = "last"  // override with latest value
@@ -106,7 +125,7 @@ type Range struct {
 func (options *CreateOptions) SerializeSeriesOptions(cmd string, args []interface{}) (result []interface{}, err error) {
 	result = args
 	if options.DuplicatePolicy != "" {
-		if cmd == "TS.ADD" {
+		if cmd == ADD_CMD {
 			result = append(result, "ON_DUPLICATE", string(options.DuplicatePolicy))
 		} else {
 			result = append(result, "DUPLICATE_POLICY", string(options.DuplicatePolicy))
