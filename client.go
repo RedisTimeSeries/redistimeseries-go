@@ -53,11 +53,11 @@ func (client *Client) CreateKeyWithOptions(key string, options CreateOptions) (e
 	defer conn.Close()
 
 	args := []interface{}{key}
-	args, err = options.SerializeSeriesOptions("TS.CREATE", args)
+	args, err = options.SerializeSeriesOptions(CREATE_CMD, args)
 	if err != nil {
 		return
 	}
-	_, err = conn.Do("TS.CREATE", args...)
+	_, err = conn.Do(CREATE_CMD, args...)
 	return err
 }
 
@@ -67,11 +67,11 @@ func (client *Client) AlterKeyWithOptions(key string, options CreateOptions) (er
 	defer conn.Close()
 
 	args := []interface{}{key}
-	args, err = options.SerializeSeriesOptions("TS.ALTER", args)
+	args, err = options.SerializeSeriesOptions(ALTER_CMD, args)
 	if err != nil {
 		return
 	}
-	_, err = conn.Do("TS.ALTER", args...)
+	_, err = conn.Do(ALTER_CMD, args...)
 	return err
 }
 
