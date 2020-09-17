@@ -32,10 +32,10 @@ func ExampleClient_RangeWithOptions() {
 	}}
 	client := redistimeseries.NewClientFromPool(pool, "ts-client-1")
 	for ts := 1; ts < 10; ts++ {
-		client.Add("ts", int64(ts), float64(ts))
+		client.Add("ts-1", int64(ts), float64(ts))
 	}
 
-	datapoints, _ := client.RangeWithOptions("ts", 0, 1000, redistimeseries.DefaultRangeOptions)
+	datapoints, _ := client.RangeWithOptions("ts-1", 0, 1000, redistimeseries.DefaultRangeOptions)
 	fmt.Printf("Datapoints: %v\n", datapoints)
 	// Output:
 	// Datapoints: [{1 1} {2 2} {3 3} {4 4} {5 5} {6 6} {7 7} {8 8} {9 9}]
@@ -51,10 +51,10 @@ func ExampleClient_ReverseRangeWithOptions() {
 	}}
 	client := redistimeseries.NewClientFromPool(pool, "ts-client-1")
 	for ts := 1; ts < 10; ts++ {
-		client.Add("ts", int64(ts), float64(ts))
+		client.Add("ts-2", int64(ts), float64(ts))
 	}
 
-	datapoints, _ := client.ReverseRangeWithOptions("ts", 0, 1000, redistimeseries.DefaultRangeOptions)
+	datapoints, _ := client.ReverseRangeWithOptions("ts-2", 0, 1000, redistimeseries.DefaultRangeOptions)
 	fmt.Printf("Datapoints: %v\n", datapoints)
 	// Output:
 	// Datapoints: [{9 9} {8 8} {7 7} {6 6} {5 5} {4 4} {3 3} {2 2} {1 1}]
