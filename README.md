@@ -3,6 +3,7 @@
 [![GitHub issues](https://img.shields.io/github/release/RedisTimeSeries/redistimeseries-go.svg)](https://github.com/RedisTimeSeries/redistimeseries-go/releases/latest)
 [![Codecov](https://codecov.io/gh/RedisTimeSeries/redistimeseries-go/branch/master/graph/badge.svg)](https://codecov.io/gh/RedisTimeSeries/redistimeseries-go)
 [![GoDoc](https://godoc.org/github.com/RedisTimeSeries/redistimeseries-go?status.svg)](https://godoc.org/github.com/RedisTimeSeries/redistimeseries-go)
+[![Go Report Card](https://goreportcard.com/badge/github.com/RedisTimeSeries/redistimeseries-go)](https://goreportcard.com/report/github.com/RedisTimeSeries/redistimeseries-go)
 
 
 # redistimeseries-go
