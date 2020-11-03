@@ -4,7 +4,7 @@
 [![Codecov](https://codecov.io/gh/RedisTimeSeries/redistimeseries-go/branch/master/graph/badge.svg)](https://codecov.io/gh/RedisTimeSeries/redistimeseries-go)
 [![GoDoc](https://godoc.org/github.com/RedisTimeSeries/redistimeseries-go?status.svg)](https://godoc.org/github.com/RedisTimeSeries/redistimeseries-go)
 [![Go Report Card](https://goreportcard.com/badge/github.com/RedisTimeSeries/redistimeseries-go)](https://goreportcard.com/report/github.com/RedisTimeSeries/redistimeseries-go)
-
+[![Total alerts](https://img.shields.io/lgtm/alerts/g/RedisTimeSeries/redistimeseries-go.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/RedisTimeSeries/redistimeseries-go/alerts/)
 
 # redistimeseries-go
 [![Forum](https://img.shields.io/badge/Forum-RedisTimeSeries-blue)](https://forum.redislabs.com/c/modules/redistimeseries)
