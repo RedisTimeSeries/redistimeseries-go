@@ -145,6 +145,16 @@ func (client *Client) AddWithRetention(key string, timestamp int64, value float6
 	return client.AddWithOptions(key, timestamp, value, options)
 }
 
+// DeleteSerie - deletes series given the time series key name. This API is sugar coating on top of redis DEL command
+// args:
+// key - time series key name
+func (client *Client) DeleteSerie(key string) (err error) {
+	conn := client.Pool.Get()
+	defer conn.Close()
+	_, err = conn.Do(DEL_CMD, key)
+	return err
+}
+
 // CreateRule - create a compaction rule
 // args:
 // sourceKey - key name for source time series

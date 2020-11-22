@@ -472,3 +472,26 @@ func ExampleClient_MultiAdd() {
 	// Example adding multiple datapoints to multiple series. Added timestamps: [1 2 1]
 	// Example of adding multiple datapoints to the same serie. Added timestamps: [3 4 5]
 }
+
+// exemplifies the usage of DeleteSerie function
+//nolint:errcheck
+func ExampleClient_DeleteSerie() {
+	host := "localhost:6379"
+	password := ""
+	pool := &redis.Pool{Dial: func() (redis.Conn, error) {
+		return redis.Dial("tcp", host, redis.DialPassword(password))
+	}}
+	client := redistimeseries.NewClientFromPool(pool, "ts-client-1")
+
+	// Create serie and add datapoint
+	client.Add("ts", 1, 5)
+
+	// Query the serie
+	datapoints, _ := client.RangeWithOptions("ts", 0, 1000, redistimeseries.DefaultRangeOptions)
+	fmt.Println(datapoints[0])
+	// Output: {1 5}
+
+	// Delete the serie
+	client.DeleteSerie("ts")
+
+}

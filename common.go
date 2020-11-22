@@ -44,6 +44,7 @@ const (
 	MGET_CMD       string = "TS.MGET"
 	INFO_CMD       string = "TS.INFO"
 	QUERYINDEX_CMD string = "TS.QUERYINDEX"
+	DEL_CMD        string = "DEL"
 )
 
 const (
