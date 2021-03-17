@@ -373,12 +373,36 @@ func (client *Client) IncrBy(key string, timestamp int64, value float64, options
 	return redis.Int64(conn.Do(INCRBY_CMD, args...))
 }
 
+// Creates a new sample that increments the latest sample's value with an auto timestamp
+func (client *Client) IncrByAutoTs(key string, value float64, options CreateOptions) (int64, error) {
+	conn := client.Pool.Get()
+	defer conn.Close()
+
+	args, err := AddCounterArgs(key, -1, value, options)
+	if err != nil {
+		return -1, err
+	}
+	return redis.Int64(conn.Do(INCRBY_CMD, args...))
+}
+
 // Creates a new sample that decrements the latest sample's value
 func (client *Client) DecrBy(key string, timestamp int64, value float64, options CreateOptions) (int64, error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
 
 	args, err := AddCounterArgs(key, timestamp, value, options)
+	if err != nil {
+		return -1, err
+	}
+	return redis.Int64(conn.Do(DECRBY_CMD, args...))
+}
+
+// Creates a new sample that decrements the latest sample's value with auto timestamp
+func (client *Client) DecrByAutoTs(key string, value float64, options CreateOptions) (int64, error) {
+	conn := client.Pool.Get()
+	defer conn.Close()
+
+	args, err := AddCounterArgs(key, -1, value, options)
 	if err != nil {
 		return -1, err
 	}

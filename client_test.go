@@ -1,6 +1,7 @@
 package redis_timeseries_go
 
 import (
+	"log"
 	"os"
 	"reflect"
 	"testing"
@@ -723,6 +724,20 @@ func TestNewClientFromPool(t *testing.T) {
 	assert.Nil(t, err1)
 	assert.Nil(t, err2)
 }
+
+func TestIncrDecrByAutoTs(t *testing.T) {
+	tkey := "Test:IncrDecrByAutoTs"
+	err := client.FlushAll()
+	assert.Nil(t, err)
+	storedTimestamp1, _ := client.IncrByAutoTs(tkey, 101, CreateOptions{Uncompressed: false, Labels: map[string]string{}})
+	time.Sleep(1 * time.Millisecond)
+	log.Printf("YO: %+v\n", storedTimestamp1)
+	storedTimestamp2, _ := client.DecrByAutoTs(tkey, 1, CreateOptions{Uncompressed: false, Labels: map[string]string{}})
+	assert.True(t, storedTimestamp1 < storedTimestamp2)
+	datapoint, _ := client.Get(tkey)
+	assert.True(t, datapoint.Value == 100)
+}
+
 func TestIncrDecrBy(t *testing.T) {
 	err := client.FlushAll()
 	assert.Nil(t, err)
