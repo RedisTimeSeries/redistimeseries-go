@@ -20,7 +20,7 @@ jobs:
             make lint
       - run: make test
       - run: make coverage
-      - run: bash <(curl -s https://raw.githubusercontent.com/codecov/codecov-action/master/codecov) -t ${CODECOV_TOKEN}
+      - run: bash <(curl -s https://raw.githubusercontent.com/codecov/codecov-bash/master/codecov) -t ${CODECOV_TOKEN}
 
 workflows:
   version: 2
