@@ -955,3 +955,74 @@ func TestClient_MultiReverseRangeWithOptions(t *testing.T) {
 		})
 	}
 }
+
+func TestClient_DeleteRange(t *testing.T) {
+
+	err := client.FlushAll()
+	assert.Nil(t, err)
+	key1 := "test_TestClient_DeleteRange_key1"
+	key2 := "test_TestClient_DeleteRange_key2"
+	key3 := "test_TestClient_DeleteRange_key3"
+	labels1 := map[string]string{
+		"metric":  "cpu",
+		"country": "US",
+	}
+	labels2 := map[string]string{
+		"metric":  "cpu",
+		"country": "UK",
+	}
+
+	_, err = client.AddWithOptions(key1, 1, 5.0, CreateOptions{Labels: labels1})
+	assert.Nil(t, err)
+	_, err = client.Add(key1, 2, 15.0)
+	assert.Nil(t, err)
+	_, err = client.Add(key1, 10, 15.0)
+	assert.Nil(t, err)
+	_, err = client.AddWithOptions(key2, 1, 5.0, CreateOptions{Labels: labels2})
+	assert.Nil(t, err)
+	_, err = client.Add(key2, 10, 15.0)
+	assert.Nil(t, err)
+	_, err = client.Add(key3, 10, 15.0)
+	assert.Nil(t, err)
+	_, err = client.Add(key3, 11, 15.0)
+	assert.Nil(t, err)
+
+	type fields struct {
+		Pool ConnPool
+		Name string
+	}
+	type args struct {
+		key           string
+		fromTimestamp int64
+		toTimestamp   int64
+	}
+	tests := []struct {
+		name           string
+		fields         fields
+		args           args
+		wantErr        bool
+		wantFinalCount int
+	}{
+		{"delete2Datapoints", fields{client.Pool, "test"}, args{key1, 1, 2}, false, 1},
+		{"deleteAllDatapoints", fields{client.Pool, "test"}, args{key2, 1, 100}, false, 0},
+		{"deleteNoDatapoints", fields{client.Pool, "test"}, args{key3, 1, 5}, false, 2},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client := &Client{
+				Pool: tt.fields.Pool,
+				Name: tt.fields.Name,
+			}
+			if err := client.DeleteRange(tt.args.key, tt.args.fromTimestamp, tt.args.toTimestamp); (err != nil) != tt.wantErr {
+				t.Errorf("DeleteRange() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			datapoints, err := client.Range(tt.args.key, TimeRangeMinimum, TimeRangeMaximum)
+			if err != nil {
+				t.Errorf("DeleteRange() Range error = %v", err)
+			}
+			if len(datapoints) != tt.wantFinalCount {
+				t.Errorf("DeleteRange() wanted a final series datapoints count of %d and got %d", tt.wantFinalCount, len(datapoints))
+			}
+		})
+	}
+}

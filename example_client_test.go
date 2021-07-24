@@ -495,3 +495,34 @@ func ExampleClient_DeleteSerie() {
 	client.DeleteSerie("ts")
 
 }
+
+// exemplifies the usage of DeleteRange function
+//nolint:errcheck
+func ExampleClient_DeleteRange() {
+	host := "localhost:6379"
+	password := ""
+	pool := &redis.Pool{Dial: func() (redis.Conn, error) {
+		return redis.Dial("tcp", host, redis.DialPassword(password))
+	}}
+	client := redistimeseries.NewClientFromPool(pool, "ts-client-1")
+
+	// Create serie and add datapoint
+	client.Add("ts", 1, 5)
+	client.Add("ts", 10, 15.5)
+	client.Add("ts", 20, 25)
+
+	// Query the serie
+	datapoints, _ := client.RangeWithOptions("ts", redistimeseries.TimeRangeMinimum, redistimeseries.TimeRangeMaximum, redistimeseries.DefaultRangeOptions)
+	fmt.Println("Before deleting datapoints: ", datapoints)
+
+	// Delete datapoints from timestamp 1 until 10 ( inclusive )
+	client.DeleteRange("ts", 1, 10)
+
+	// Query the serie after deleting from timestamp 1 until 10 ( inclusive )
+	datapoints, _ = client.RangeWithOptions("ts", redistimeseries.TimeRangeMinimum, redistimeseries.TimeRangeMaximum, redistimeseries.DefaultRangeOptions)
+	fmt.Println("After deleting datapoints: ", datapoints)
+
+	// Output: Before deleting datapoints:  [{1 5} {10 15.5} {20 25}]
+	// After deleting datapoints:  [{20 25}]
+
+}
