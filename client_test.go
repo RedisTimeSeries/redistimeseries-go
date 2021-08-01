@@ -997,15 +997,16 @@ func TestClient_DeleteRange(t *testing.T) {
 		toTimestamp   int64
 	}
 	tests := []struct {
-		name           string
-		fields         fields
-		args           args
-		wantErr        bool
-		wantFinalCount int
+		name               string
+		fields             fields
+		args               args
+		wantErr            bool
+		wantDeletedSamples int
+		wantFinalCount     int
 	}{
-		{"delete2Datapoints", fields{client.Pool, "test"}, args{key1, 1, 2}, false, 1},
-		{"deleteAllDatapoints", fields{client.Pool, "test"}, args{key2, 1, 100}, false, 0},
-		{"deleteNoDatapoints", fields{client.Pool, "test"}, args{key3, 1, 5}, false, 2},
+		{"delete2Datapoints", fields{client.Pool, "test"}, args{key1, 1, 2}, false, 2, 1},
+		{"deleteAllDatapoints", fields{client.Pool, "test"}, args{key2, 1, 100}, false, 2, 0},
+		{"deleteNoDatapoints", fields{client.Pool, "test"}, args{key3, 1, 5}, false, 0, 2},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1013,8 +1014,12 @@ func TestClient_DeleteRange(t *testing.T) {
 				Pool: tt.fields.Pool,
 				Name: tt.fields.Name,
 			}
-			if err := client.DeleteRange(tt.args.key, tt.args.fromTimestamp, tt.args.toTimestamp); (err != nil) != tt.wantErr {
+			totalDeletedSamples, err := client.DeleteRange(tt.args.key, tt.args.fromTimestamp, tt.args.toTimestamp)
+			if (err != nil) != tt.wantErr {
 				t.Errorf("DeleteRange() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if totalDeletedSamples != int64(tt.wantDeletedSamples) {
+				t.Errorf("DeleteRange() wanted total deleted samples of %d and got %d", tt.wantDeletedSamples, totalDeletedSamples)
 			}
 			datapoints, err := client.Range(tt.args.key, TimeRangeMinimum, TimeRangeMaximum)
 			if err != nil {

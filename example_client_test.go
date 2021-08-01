@@ -516,13 +516,15 @@ func ExampleClient_DeleteRange() {
 	fmt.Println("Before deleting datapoints: ", datapoints)
 
 	// Delete datapoints from timestamp 1 until 10 ( inclusive )
-	client.DeleteRange("ts", 1, 10)
+	totalDeletedSamples, _ := client.DeleteRange("ts", 1, 10)
+	fmt.Println(fmt.Sprintf("Deleted %d datapoints", totalDeletedSamples))
 
 	// Query the serie after deleting from timestamp 1 until 10 ( inclusive )
 	datapoints, _ = client.RangeWithOptions("ts", redistimeseries.TimeRangeMinimum, redistimeseries.TimeRangeMaximum, redistimeseries.DefaultRangeOptions)
 	fmt.Println("After deleting datapoints: ", datapoints)
 
 	// Output: Before deleting datapoints:  [{1 5} {10 15.5} {20 25}]
+	// Deleted 2 datapoints
 	// After deleting datapoints:  [{20 25}]
 
 }

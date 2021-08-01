@@ -156,15 +156,16 @@ func (client *Client) DeleteSerie(key string) (err error) {
 }
 
 // DeleteRange - Delete data points for a given timeseries and interval range in the form of start and end delete timestamps.
+// Returns the total deleted datapoints.
 // args:
 //  key - time series key name
 //  fromTimestamp - start of range. You can use TimeRangeMinimum to express the minimum possible timestamp.
 //  toTimestamp - end of range. You can use TimeRangeFull or TimeRangeMaximum to express the maximum possible timestamp.
-func (client *Client) DeleteRange(key string, fromTimestamp int64, toTimestamp int64) (err error) {
+func (client *Client) DeleteRange(key string, fromTimestamp int64, toTimestamp int64) (totalDeletedSamples int64, err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
-	_, err = conn.Do(TS_DEL_CMD, key, fromTimestamp, toTimestamp)
-	return err
+	totalDeletedSamples, err = redis.Int64(conn.Do(TS_DEL_CMD, key, fromTimestamp, toTimestamp))
+	return
 }
 
 // CreateRule - create a compaction rule
