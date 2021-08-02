@@ -306,7 +306,7 @@ func ExampleClient_RangeWithOptions() {
 
 // Exemplifies the usage of RangeWithOptions function, while changing the reference timestamp on which a bucket is defined.
 // nolint:errcheck
-func ExampleClient_RangeWithOptions_AggregationMax() {
+func ExampleClient_RangeWithOptions_aggregationMax() {
 	host := "localhost:6379"
 	password := ""
 	pool := &redis.Pool{Dial: func() (redis.Conn, error) {
@@ -325,7 +325,7 @@ func ExampleClient_RangeWithOptions_AggregationMax() {
 
 // Exemplifies the usage of RangeWithOptions function, while changing the reference timestamp on which a bucket is defined.
 // nolint:errcheck
-func ExampleClient_RangeWithOptions_AggregationAlign() {
+func ExampleClient_RangeWithOptions_aggregationAlign() {
 	host := "localhost:6379"
 	password := ""
 	pool := &redis.Pool{Dial: func() (redis.Conn, error) {
@@ -363,7 +363,7 @@ func ExampleClient_ReverseRangeWithOptions() {
 
 // nolint
 // Exemplifies the usage of ReverseRangeWithOptions function while filtering value
-func ExampleClient_ReverseRangeWithOptions_filter_by_value() {
+func ExampleClient_ReverseRangeWithOptions_filterByValue() {
 	host := "localhost:6379"
 	password := ""
 	pool := &redis.Pool{Dial: func() (redis.Conn, error) {
@@ -382,7 +382,7 @@ func ExampleClient_ReverseRangeWithOptions_filter_by_value() {
 
 // nolint
 // Exemplifies the usage of ReverseRangeWithOptions function while filtering by timestamp
-func ExampleClient_ReverseRangeWithOptions_filter_by_ts() {
+func ExampleClient_ReverseRangeWithOptions_filterByTs() {
 	host := "localhost:6379"
 	password := ""
 	pool := &redis.Pool{Dial: func() (redis.Conn, error) {
@@ -433,7 +433,7 @@ func ExampleClient_MultiRangeWithOptions() {
 // Exemplifies the usage of MultiRangeWithOptions function,
 // filtering the result by specific timestamps
 // nolint:errcheck
-func ExampleClient_MultiRangeWithOptions_FilterByTs() {
+func ExampleClient_MultiRangeWithOptions_filterByTs() {
 	host := "localhost:6379"
 	password := ""
 	pool := &redis.Pool{Dial: func() (redis.Conn, error) {
@@ -465,7 +465,7 @@ func ExampleClient_MultiRangeWithOptions_FilterByTs() {
 // Exemplifies the usage of MultiRangeWithOptions function,
 // filtering the result by value using minimum and maximum.
 // nolint:errcheck
-func ExampleClient_MultiRangeWithOptions_FilterByValue() {
+func ExampleClient_MultiRangeWithOptions_filterByValue() {
 	host := "localhost:6379"
 	password := ""
 	pool := &redis.Pool{Dial: func() (redis.Conn, error) {
@@ -500,7 +500,7 @@ func ExampleClient_MultiRangeWithOptions_FilterByValue() {
 // Exemplifies the usage of MultiRangeWithOptions function,
 // filtering the returned labels.
 // nolint:errcheck
-func ExampleClient_MultiRangeWithOptions_SelectedLabels() {
+func ExampleClient_MultiRangeWithOptions_selectedLabels() {
 	host := "localhost:6379"
 	password := ""
 	pool := &redis.Pool{Dial: func() (redis.Conn, error) {
@@ -573,7 +573,7 @@ func ExampleClient_MultiReverseRangeWithOptions() {
 // Exemplifies the usage of MultiReverseRangeWithOptions function,
 // filtering the result by specific timestamps
 // nolint:errcheck
-func ExampleClient_MultiReverseRangeWithOptions_FilterByTs() {
+func ExampleClient_MultiReverseRangeWithOptions_filterByTs() {
 	host := "localhost:6379"
 	password := ""
 	pool := &redis.Pool{Dial: func() (redis.Conn, error) {
@@ -605,7 +605,7 @@ func ExampleClient_MultiReverseRangeWithOptions_FilterByTs() {
 // Exemplifies the usage of MultiReverseRangeWithOptions function,
 // filtering the result by value using minimum and maximum.
 // nolint:errcheck
-func ExampleClient_MultiReverseRangeWithOptions_FilterByValue() {
+func ExampleClient_MultiReverseRangeWithOptions_filterByValue() {
 	host := "localhost:6379"
 	password := ""
 	pool := &redis.Pool{Dial: func() (redis.Conn, error) {
@@ -640,7 +640,7 @@ func ExampleClient_MultiReverseRangeWithOptions_FilterByValue() {
 // Exemplifies the usage of MultiReverseRangeWithOptions function,
 // filtering the returned labels.
 // nolint:errcheck
-func ExampleClient_MultiReverseRangeWithOptions_SelectedLabels() {
+func ExampleClient_MultiReverseRangeWithOptions_selectedLabels() {
 	host := "localhost:6379"
 	password := ""
 	pool := &redis.Pool{Dial: func() (redis.Conn, error) {
