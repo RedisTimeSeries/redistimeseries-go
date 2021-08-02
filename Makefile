@@ -30,8 +30,10 @@ doc:
 get:
 	$(GOGET) -t -v ./...
 
-test: get
+fmt:
 	$(GOFMT) ./...
+
+test: get fmt
 	$(GOTEST) -count=1 -race -covermode=atomic ./...
 
 coverage: get test
