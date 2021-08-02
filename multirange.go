@@ -45,20 +45,20 @@ func NewMultiRangeOptions() *MultiRangeOptions {
 	}
 }
 
-// Time bucket alignment control for AGGREGATION.
+// SetAlign sets the time bucket alignment control for AGGREGATION.
 // This will control the time bucket timestamps by changing the reference timestamp on which a bucket is defined.
 func (mrangeopts *MultiRangeOptions) SetAlign(byTimeStamp int64) *MultiRangeOptions {
 	mrangeopts.Align = byTimeStamp
 	return mrangeopts
 }
 
-// list of timestamps to filter the result by specific timestamps
+// SetFilterByTs sets the list of timestamps to filter the result by specific timestamps
 func (mrangeopts *MultiRangeOptions) SetFilterByTs(filterByTS []int64) *MultiRangeOptions {
 	mrangeopts.FilterByTs = filterByTS
 	return mrangeopts
 }
 
-// Filter result by value using minimum and maximum ( inclusive )
+// SetFilterByValue filters the result by value using minimum and maximum ( inclusive )
 func (mrangeopts *MultiRangeOptions) SetFilterByValue(min, max float64) *MultiRangeOptions {
 	mrangeopts.FilterByValueMin = &min
 	mrangeopts.FilterByValueMax = &max
@@ -81,6 +81,7 @@ func (mrangeopts *MultiRangeOptions) SetWithLabels(value bool) *MultiRangeOption
 	return mrangeopts
 }
 
+// SetSelectedLabels limits the series reply labels to provided label names
 func (mrangeopts *MultiRangeOptions) SetSelectedLabels(labels []string) *MultiRangeOptions {
 	mrangeopts.SelectedLabels = labels
 	return mrangeopts

@@ -36,20 +36,20 @@ func (rangeopts *RangeOptions) SetCount(count int64) *RangeOptions {
 	return rangeopts
 }
 
-// Time bucket alignment control for AGGREGATION.
+// SetAlign sets the time bucket alignment control for AGGREGATION.
 // This will control the time bucket timestamps by changing the reference timestamp on which a bucket is defined.
 func (rangeopts *RangeOptions) SetAlign(byTimeStamp int64) *RangeOptions {
 	rangeopts.Align = byTimeStamp
 	return rangeopts
 }
 
-// list of timestamps to filter the result by specific timestamps
+// SetFilterByTs sets a list of timestamps to filter the result by specific timestamps
 func (rangeopts *RangeOptions) SetFilterByTs(filterByTS []int64) *RangeOptions {
 	rangeopts.FilterByTs = filterByTS
 	return rangeopts
 }
 
-// Filter result by value using minimum and maximum ( inclusive )
+// SetFilterByValue filters result by value using minimum and maximum ( inclusive )
 func (rangeopts *RangeOptions) SetFilterByValue(min, max float64) *RangeOptions {
 	rangeopts.FilterByValueMin = &min
 	rangeopts.FilterByValueMax = &max
