@@ -10,8 +10,17 @@ import (
 //go:generate stringer -type=AggregationType
 type AggregationType string
 
+//go:generate stringer -type=ReducerType
+type ReducerType string
+
 //go:generate stringer -type=DuplicatePolicyType
 type DuplicatePolicyType string
+
+const (
+	SumReducer ReducerType = "SUM"
+	MinReducer ReducerType = "MIN"
+	MaxReducer ReducerType = "MAX"
+)
 
 const (
 	AvgAggregation   AggregationType = "AVG"

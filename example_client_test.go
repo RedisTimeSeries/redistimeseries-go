@@ -409,6 +409,9 @@ func ExampleClient_MultiRangeWithOptions() {
 	}}
 	client := redistimeseries.NewClientFromPool(pool, "ts-client-1")
 
+	// ensure clean DB
+	client.FlushAll()
+
 	labels1 := map[string]string{
 		"machine": "machine-1",
 		"az":      "us-east-1",
@@ -430,6 +433,52 @@ func ExampleClient_MultiRangeWithOptions() {
 	// Ranges: [{time-serie-1 map[] [{2 1} {4 2}]} {time-serie-2 map[] [{1 5} {4 10}]}]
 }
 
+// nolint
+// Exemplifies the usage of MultiRangeWithOptions function.
+// grouping multiple time-series
+func ExampleClient_MultiRangeWithOptions_groupByReduce() {
+	host := "localhost:6379"
+	password := ""
+	pool := &redis.Pool{Dial: func() (redis.Conn, error) {
+		return redis.Dial("tcp", host, redis.DialPassword(password))
+	}}
+	client := redistimeseries.NewClientFromPool(pool, "ts-client-1")
+
+	// ensure clean DB
+	client.FlushAll()
+
+	labels1 := map[string]string{
+		"machine": "machine-1",
+		"az":      "us-east-1",
+		"team":    "team-1",
+	}
+	client.AddWithOptions("time-serie-1", 2, 1.0, redistimeseries.CreateOptions{Labels: labels1})
+	client.Add("time-serie-1", 4, 2.0)
+
+	labels2 := map[string]string{
+		"machine": "machine-2",
+		"az":      "us-east-1",
+		"team":    "team-2",
+	}
+	client.AddWithOptions("time-serie-2", 1, 5.0, redistimeseries.CreateOptions{Labels: labels2})
+	client.Add("time-serie-2", 4, 10.0)
+
+	labels3 := map[string]string{
+		"machine": "machine-3",
+		"az":      "us-east-1",
+		"team":    "team-2",
+	}
+	client.AddWithOptions("time-serie-3", 1, 55.0, redistimeseries.CreateOptions{Labels: labels3})
+	client.Add("time-serie-3", 4, 99.0)
+
+	// Find out the total resources usage by team
+	ranges, _ := client.MultiRangeWithOptions(1, 10, *redistimeseries.NewMultiRangeOptions().SetWithLabels(true).SetGroupByReduce("team", redistimeseries.SumReducer), "az=us-east-1")
+
+	fmt.Printf("Sum of usage by team: %v\n", ranges)
+	// Output:
+	// Sum of usage by team: [{team=team-1 map[__reducer__:sum __source__:time-serie-1 team:team-1] [{2 1} {4 2}]} {team=team-2 map[__reducer__:sum __source__:time-serie-2,time-serie-3 team:team-2] [{1 60} {4 109}]}]
+}
+
 // Exemplifies the usage of MultiRangeWithOptions function,
 // filtering the result by specific timestamps
 // nolint:errcheck
@@ -440,6 +489,9 @@ func ExampleClient_MultiRangeWithOptions_filterByTs() {
 		return redis.Dial("tcp", host, redis.DialPassword(password))
 	}}
 	client := redistimeseries.NewClientFromPool(pool, "ts-client-1")
+
+	// ensure clean DB
+	client.FlushAll()
 
 	labels1 := map[string]string{
 		"machine": "machine-1",

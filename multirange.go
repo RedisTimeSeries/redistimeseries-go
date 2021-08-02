@@ -16,6 +16,8 @@ type MultiRangeOptions struct {
 	FilterByTs       []int64
 	FilterByValueMin *float64
 	FilterByValueMax *float64
+	GroupBy          string
+	Reduce           ReducerType
 }
 
 // MultiRangeOptions are the default options for querying across multiple time-series
@@ -29,6 +31,8 @@ var DefaultMultiRangeOptions = MultiRangeOptions{
 	FilterByTs:       []int64{},
 	FilterByValueMin: nil,
 	FilterByValueMax: nil,
+	GroupBy:          "",
+	Reduce:           "",
 }
 
 func NewMultiRangeOptions() *MultiRangeOptions {
@@ -42,7 +46,17 @@ func NewMultiRangeOptions() *MultiRangeOptions {
 		FilterByTs:       []int64{},
 		FilterByValueMin: nil,
 		FilterByValueMax: nil,
+		GroupBy:          "",
+		Reduce:           "",
 	}
+}
+
+// SetGroupByReduce Aggregates results across different time series, grouped by the provided label name.
+// When combined with AGGREGATION the groupby/reduce is applied post aggregation stage.
+func (mrangeopts *MultiRangeOptions) SetGroupByReduce(byLabel string, reducer ReducerType) *MultiRangeOptions {
+	mrangeopts.GroupBy = byLabel
+	mrangeopts.Reduce = reducer
+	return mrangeopts
 }
 
 // SetAlign sets the time bucket alignment control for AGGREGATION.
@@ -120,6 +134,9 @@ func createMultiRangeCmdArguments(fromTimestamp int64, toTimestamp int64, mrange
 	args = append(args, "FILTER")
 	for _, filter := range filters {
 		args = append(args, filter)
+	}
+	if mrangeOptions.GroupBy != "" {
+		args = append(args, "GROUPBY", mrangeOptions.GroupBy, "REDUCE", string(mrangeOptions.Reduce))
 	}
 	return args
 }

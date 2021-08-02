@@ -48,6 +48,18 @@ func TestCreateMultiRangeCmdArguments(t *testing.T) {
 			args{0, 1, *(NewMultiRangeOptions().SetAggregation(AvgAggregation, 60).SetSelectedLabels([]string{"l1", "l2"}).SetCount(120).SetAlign(10).SetFilterByValue(10, 13)),
 				[]string{"labels!="}},
 			[]interface{}{"0", "1", "FILTER_BY_VALUE", "10.000000", "13.000000", "AGGREGATION", AvgAggregation, "60", "COUNT", "120", "SELECTED_LABELS", "l1", "l2", "ALIGN", "10", "FILTER", "labels!="}},
+		{"groupby l2 reduce max",
+			args{0, 1, *NewMultiRangeOptions().SetGroupByReduce("l2", MaxReducer),
+				[]string{"labels!="}},
+			[]interface{}{"0", "1", "FILTER", "labels!=", "GROUPBY", "l2", "REDUCE", "MAX"}},
+		{"groupby l2 reduce min",
+			args{0, 1, *NewMultiRangeOptions().SetGroupByReduce("l2", MinReducer),
+				[]string{"labels!="}},
+			[]interface{}{"0", "1", "FILTER", "labels!=", "GROUPBY", "l2", "REDUCE", "MIN"}},
+		{"groupby l2 reduce sum",
+			args{0, 1, *NewMultiRangeOptions().SetGroupByReduce("l2", SumReducer),
+				[]string{"labels!="}},
+			[]interface{}{"0", "1", "FILTER", "labels!=", "GROUPBY", "l2", "REDUCE", "SUM"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
