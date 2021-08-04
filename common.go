@@ -54,6 +54,7 @@ const (
 	INFO_CMD       string = "TS.INFO"
 	QUERYINDEX_CMD string = "TS.QUERYINDEX"
 	DEL_CMD        string = "DEL"
+	TS_DEL_CMD     string = "TS.DEL"
 )
 
 const (
