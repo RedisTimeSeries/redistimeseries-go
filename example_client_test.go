@@ -304,6 +304,44 @@ func ExampleClient_RangeWithOptions() {
 	// Datapoints: [{1 1} {2 2} {3 3} {4 4} {5 5} {6 6} {7 7} {8 8} {9 9}]
 }
 
+// Exemplifies the usage of RangeWithOptions function, while changing the reference timestamp on which a bucket is defined.
+// nolint:errcheck
+func ExampleClient_RangeWithOptions_aggregationMax() {
+	host := "localhost:6379"
+	password := ""
+	pool := &redis.Pool{Dial: func() (redis.Conn, error) {
+		return redis.Dial("tcp", host, redis.DialPassword(password))
+	}}
+	client := redistimeseries.NewClientFromPool(pool, "ts-client-1")
+	for ts := 1; ts < 10; ts++ {
+		client.Add("ts-1", int64(ts), float64(ts))
+	}
+
+	datapoints, _ := client.RangeWithOptions("ts-1", 0, 1000, *redistimeseries.NewRangeOptions().SetAggregation(redistimeseries.MaxAggregation, 5))
+	fmt.Printf("Datapoints: %v\n", datapoints)
+	// Output:
+	// Datapoints: [{0 4} {5 9}]
+}
+
+// Exemplifies the usage of RangeWithOptions function, while changing the reference timestamp on which a bucket is defined.
+// nolint:errcheck
+func ExampleClient_RangeWithOptions_aggregationAlign() {
+	host := "localhost:6379"
+	password := ""
+	pool := &redis.Pool{Dial: func() (redis.Conn, error) {
+		return redis.Dial("tcp", host, redis.DialPassword(password))
+	}}
+	client := redistimeseries.NewClientFromPool(pool, "ts-client-1")
+	for ts := 1; ts < 10; ts++ {
+		client.Add("ts-1", int64(ts), float64(ts))
+	}
+
+	datapoints, _ := client.RangeWithOptions("ts-1", 0, 1000, *redistimeseries.NewRangeOptions().SetAggregation(redistimeseries.CountAggregation, 2).SetAlign(1))
+	fmt.Printf("Datapoints: %v\n", datapoints)
+	// Output:
+	// Datapoints: [{1 2} {3 2} {5 2} {7 2} {9 1}]
+}
+
 // nolint
 // Exemplifies the usage of ReverseRangeWithOptions function
 func ExampleClient_ReverseRangeWithOptions() {
@@ -324,6 +362,44 @@ func ExampleClient_ReverseRangeWithOptions() {
 }
 
 // nolint
+// Exemplifies the usage of ReverseRangeWithOptions function while filtering value
+func ExampleClient_ReverseRangeWithOptions_filterByValue() {
+	host := "localhost:6379"
+	password := ""
+	pool := &redis.Pool{Dial: func() (redis.Conn, error) {
+		return redis.Dial("tcp", host, redis.DialPassword(password))
+	}}
+	client := redistimeseries.NewClientFromPool(pool, "ts-client-1")
+	for ts := 1; ts < 10; ts++ {
+		client.Add("ts-2", int64(ts), float64(ts))
+	}
+
+	datapoints, _ := client.ReverseRangeWithOptions("ts-2", 0, 1000, *redistimeseries.NewRangeOptions().SetFilterByValue(5, 50))
+	fmt.Printf("Datapoints: %v\n", datapoints)
+	// Output:
+	// Datapoints: [{9 9} {8 8} {7 7} {6 6} {5 5}]
+}
+
+// nolint
+// Exemplifies the usage of ReverseRangeWithOptions function while filtering by timestamp
+func ExampleClient_ReverseRangeWithOptions_filterByTs() {
+	host := "localhost:6379"
+	password := ""
+	pool := &redis.Pool{Dial: func() (redis.Conn, error) {
+		return redis.Dial("tcp", host, redis.DialPassword(password))
+	}}
+	client := redistimeseries.NewClientFromPool(pool, "ts-client-1")
+	for ts := 1; ts < 10; ts++ {
+		client.Add("ts-2", int64(ts), float64(ts))
+	}
+
+	datapoints, _ := client.ReverseRangeWithOptions("ts-2", 0, 1000, *redistimeseries.NewRangeOptions().SetFilterByTs([]int64{1, 2, 3, 4, 5}))
+	fmt.Printf("Datapoints: %v\n", datapoints)
+	// Output:
+	// Datapoints: [{5 5} {4 4} {3 3} {2 2} {1 1}]
+}
+
+// nolint
 // Exemplifies the usage of MultiRangeWithOptions function.
 func ExampleClient_MultiRangeWithOptions() {
 	host := "localhost:6379"
@@ -332,6 +408,9 @@ func ExampleClient_MultiRangeWithOptions() {
 		return redis.Dial("tcp", host, redis.DialPassword(password))
 	}}
 	client := redistimeseries.NewClientFromPool(pool, "ts-client-1")
+
+	// ensure clean DB
+	client.FlushAll()
 
 	labels1 := map[string]string{
 		"machine": "machine-1",
@@ -354,6 +433,161 @@ func ExampleClient_MultiRangeWithOptions() {
 	// Ranges: [{time-serie-1 map[] [{2 1} {4 2}]} {time-serie-2 map[] [{1 5} {4 10}]}]
 }
 
+// nolint
+// Exemplifies the usage of MultiRangeWithOptions function.
+// grouping multiple time-series
+func ExampleClient_MultiRangeWithOptions_groupByReduce() {
+	host := "localhost:6379"
+	password := ""
+	pool := &redis.Pool{Dial: func() (redis.Conn, error) {
+		return redis.Dial("tcp", host, redis.DialPassword(password))
+	}}
+	client := redistimeseries.NewClientFromPool(pool, "ts-client-1")
+
+	// ensure clean DB
+	client.FlushAll()
+
+	labels1 := map[string]string{
+		"machine": "machine-1",
+		"az":      "us-east-1",
+		"team":    "team-1",
+	}
+	client.AddWithOptions("time-serie-1", 2, 1.0, redistimeseries.CreateOptions{Labels: labels1})
+	client.Add("time-serie-1", 4, 2.0)
+
+	labels2 := map[string]string{
+		"machine": "machine-2",
+		"az":      "us-east-1",
+		"team":    "team-2",
+	}
+	client.AddWithOptions("time-serie-2", 1, 5.0, redistimeseries.CreateOptions{Labels: labels2})
+	client.Add("time-serie-2", 4, 10.0)
+
+	labels3 := map[string]string{
+		"machine": "machine-3",
+		"az":      "us-east-1",
+		"team":    "team-2",
+	}
+	client.AddWithOptions("time-serie-3", 1, 55.0, redistimeseries.CreateOptions{Labels: labels3})
+	client.Add("time-serie-3", 4, 99.0)
+
+	// Find out the total resources usage by team
+	ranges, _ := client.MultiRangeWithOptions(1, 10, *redistimeseries.NewMultiRangeOptions().SetWithLabels(true).SetGroupByReduce("team", redistimeseries.SumReducer), "az=us-east-1")
+
+	fmt.Printf("Sum of usage by team: %v\n", ranges)
+	// Output:
+	// Sum of usage by team: [{team=team-1 map[__reducer__:sum __source__:time-serie-1 team:team-1] [{2 1} {4 2}]} {team=team-2 map[__reducer__:sum __source__:time-serie-2,time-serie-3 team:team-2] [{1 60} {4 109}]}]
+}
+
+// Exemplifies the usage of MultiRangeWithOptions function,
+// filtering the result by specific timestamps
+// nolint:errcheck
+func ExampleClient_MultiRangeWithOptions_filterByTs() {
+	host := "localhost:6379"
+	password := ""
+	pool := &redis.Pool{Dial: func() (redis.Conn, error) {
+		return redis.Dial("tcp", host, redis.DialPassword(password))
+	}}
+	client := redistimeseries.NewClientFromPool(pool, "ts-client-1")
+
+	// ensure clean DB
+	client.FlushAll()
+
+	labels1 := map[string]string{
+		"machine": "machine-1",
+		"az":      "us-east-1",
+	}
+	client.AddWithOptions("time-serie-1", 2, 1.0, redistimeseries.CreateOptions{Labels: labels1})
+	client.Add("time-serie-1", 4, 2.0)
+
+	labels2 := map[string]string{
+		"machine": "machine-2",
+		"az":      "us-east-1",
+	}
+	client.AddWithOptions("time-serie-2", 1, 5.0, redistimeseries.CreateOptions{Labels: labels2})
+	client.Add("time-serie-2", 4, 10.0)
+
+	ranges, _ := client.MultiRangeWithOptions(1, 10, *redistimeseries.NewMultiRangeOptions().SetFilterByTs([]int64{1, 2}), "az=us-east-1")
+
+	fmt.Printf("Ranges: %v\n", ranges)
+	// Output:
+	// Ranges: [{time-serie-1 map[] [{2 1}]} {time-serie-2 map[] [{1 5}]}]
+}
+
+// Exemplifies the usage of MultiRangeWithOptions function,
+// filtering the result by value using minimum and maximum.
+// nolint:errcheck
+func ExampleClient_MultiRangeWithOptions_filterByValue() {
+	host := "localhost:6379"
+	password := ""
+	pool := &redis.Pool{Dial: func() (redis.Conn, error) {
+		return redis.Dial("tcp", host, redis.DialPassword(password))
+	}}
+	client := redistimeseries.NewClientFromPool(pool, "ts-client-1")
+
+	// ensure the DB is empty
+	client.FlushAll()
+
+	labels1 := map[string]string{
+		"machine": "machine-1",
+		"az":      "us-east-1",
+	}
+	client.AddWithOptions("time-serie-1", 2, 1.0, redistimeseries.CreateOptions{Labels: labels1})
+	client.Add("time-serie-1", 4, 2.0)
+
+	labels2 := map[string]string{
+		"machine": "machine-2",
+		"az":      "us-east-1",
+	}
+	client.AddWithOptions("time-serie-2", 1, 2.0, redistimeseries.CreateOptions{Labels: labels2})
+	client.Add("time-serie-2", 4, 10.0)
+
+	ranges, _ := client.MultiRangeWithOptions(1, 10, *redistimeseries.NewMultiRangeOptions().SetFilterByValue(1, 5), "az=us-east-1")
+
+	fmt.Printf("Ranges: %v\n", ranges)
+	// Output:
+	// Ranges: [{time-serie-1 map[] [{2 1} {4 2}]} {time-serie-2 map[] [{1 2}]}]
+}
+
+// Exemplifies the usage of MultiRangeWithOptions function,
+// filtering the returned labels.
+// nolint:errcheck
+func ExampleClient_MultiRangeWithOptions_selectedLabels() {
+	host := "localhost:6379"
+	password := ""
+	pool := &redis.Pool{Dial: func() (redis.Conn, error) {
+		return redis.Dial("tcp", host, redis.DialPassword(password))
+	}}
+	client := redistimeseries.NewClientFromPool(pool, "ts-client-1")
+
+	// ensure the DB is empty
+	client.FlushAll()
+
+	labels1 := map[string]string{
+		"machine":  "machine-1",
+		"team":     "SF-1",
+		"location": "SF",
+		"az":       "us-east-1",
+	}
+	client.AddWithOptions("selected-labels-ex-time-serie-1", 2, 1.0, redistimeseries.CreateOptions{Labels: labels1})
+	client.Add("selected-labels-ex-time-serie-1", 4, 2.0)
+
+	labels2 := map[string]string{
+		"machine":  "machine-2",
+		"team":     "NY-1",
+		"location": "NY",
+		"az":       "us-east-1",
+	}
+	client.AddWithOptions("selected-labels-ex-time-serie-2", 1, 10.0, redistimeseries.CreateOptions{Labels: labels2})
+	client.Add("selected-labels-ex-time-serie-2", 4, 15.0)
+
+	ranges, _ := client.MultiRangeWithOptions(1, 10, *redistimeseries.NewMultiRangeOptions().SetSelectedLabels([]string{"az", "location"}), "az=us-east-1")
+
+	fmt.Printf("Ranges: %v\n", ranges)
+	// Output:
+	// Ranges: [{selected-labels-ex-time-serie-1 map[az:us-east-1 location:SF] [{2 1} {4 2}]} {selected-labels-ex-time-serie-2 map[az:us-east-1 location:NY] [{1 10} {4 15}]}]
+}
+
 // Exemplifies the usage of MultiReverseRangeWithOptions function.
 // nolint:errcheck
 func ExampleClient_MultiReverseRangeWithOptions() {
@@ -363,6 +597,9 @@ func ExampleClient_MultiReverseRangeWithOptions() {
 		return redis.Dial("tcp", host, redis.DialPassword(password))
 	}}
 	client := redistimeseries.NewClientFromPool(pool, "ts-client-1")
+
+	// ensure the DB is empty
+	client.FlushAll()
 
 	labels1 := map[string]string{
 		"machine": "machine-1",
@@ -385,6 +622,112 @@ func ExampleClient_MultiReverseRangeWithOptions() {
 	// Ranges: [{time-serie-1 map[] [{4 2} {2 1}]} {time-serie-2 map[] [{4 10} {1 5}]}]
 }
 
+// Exemplifies the usage of MultiReverseRangeWithOptions function,
+// filtering the result by specific timestamps
+// nolint:errcheck
+func ExampleClient_MultiReverseRangeWithOptions_filterByTs() {
+	host := "localhost:6379"
+	password := ""
+	pool := &redis.Pool{Dial: func() (redis.Conn, error) {
+		return redis.Dial("tcp", host, redis.DialPassword(password))
+	}}
+	client := redistimeseries.NewClientFromPool(pool, "ts-client-1")
+
+	labels1 := map[string]string{
+		"machine": "machine-1",
+		"az":      "us-east-1",
+	}
+	client.AddWithOptions("time-serie-1", 2, 1.0, redistimeseries.CreateOptions{Labels: labels1})
+	client.Add("time-serie-1", 4, 2.0)
+
+	labels2 := map[string]string{
+		"machine": "machine-2",
+		"az":      "us-east-1",
+	}
+	client.AddWithOptions("time-serie-2", 1, 5.0, redistimeseries.CreateOptions{Labels: labels2})
+	client.Add("time-serie-2", 4, 10.0)
+
+	ranges, _ := client.MultiReverseRangeWithOptions(1, 10, *redistimeseries.NewMultiRangeOptions().SetFilterByTs([]int64{1, 2}), "az=us-east-1")
+
+	fmt.Printf("Ranges: %v\n", ranges)
+	// Output:
+	// Ranges: [{time-serie-1 map[] [{2 1}]} {time-serie-2 map[] [{1 5}]}]
+}
+
+// Exemplifies the usage of MultiReverseRangeWithOptions function,
+// filtering the result by value using minimum and maximum.
+// nolint:errcheck
+func ExampleClient_MultiReverseRangeWithOptions_filterByValue() {
+	host := "localhost:6379"
+	password := ""
+	pool := &redis.Pool{Dial: func() (redis.Conn, error) {
+		return redis.Dial("tcp", host, redis.DialPassword(password))
+	}}
+	client := redistimeseries.NewClientFromPool(pool, "ts-client-1")
+
+	// ensure the DB is empty
+	client.FlushAll()
+
+	labels1 := map[string]string{
+		"machine": "machine-1",
+		"az":      "us-east-1",
+	}
+	client.AddWithOptions("time-serie-1", 2, 1.0, redistimeseries.CreateOptions{Labels: labels1})
+	client.Add("time-serie-1", 4, 2.0)
+
+	labels2 := map[string]string{
+		"machine": "machine-2",
+		"az":      "us-east-1",
+	}
+	client.AddWithOptions("time-serie-2", 1, 2.0, redistimeseries.CreateOptions{Labels: labels2})
+	client.Add("time-serie-2", 4, 10.0)
+
+	ranges, _ := client.MultiReverseRangeWithOptions(1, 10, *redistimeseries.NewMultiRangeOptions().SetFilterByValue(1, 5), "az=us-east-1")
+
+	fmt.Printf("Ranges: %v\n", ranges)
+	// Output:
+	// Ranges: [{time-serie-1 map[] [{4 2} {2 1}]} {time-serie-2 map[] [{1 2}]}]
+}
+
+// Exemplifies the usage of MultiReverseRangeWithOptions function,
+// filtering the returned labels.
+// nolint:errcheck
+func ExampleClient_MultiReverseRangeWithOptions_selectedLabels() {
+	host := "localhost:6379"
+	password := ""
+	pool := &redis.Pool{Dial: func() (redis.Conn, error) {
+		return redis.Dial("tcp", host, redis.DialPassword(password))
+	}}
+	client := redistimeseries.NewClientFromPool(pool, "ts-client-1")
+
+	// ensure the DB is empty
+	client.FlushAll()
+
+	labels1 := map[string]string{
+		"machine":  "machine-1",
+		"team":     "SF-1",
+		"location": "SF",
+		"az":       "us-east-1",
+	}
+	client.AddWithOptions("selected-labels-ex-time-serie-1", 2, 1.0, redistimeseries.CreateOptions{Labels: labels1})
+	client.Add("selected-labels-ex-time-serie-1", 4, 2.0)
+
+	labels2 := map[string]string{
+		"machine":  "machine-2",
+		"team":     "NY-1",
+		"location": "NY",
+		"az":       "us-east-1",
+	}
+	client.AddWithOptions("selected-labels-ex-time-serie-2", 1, 10.0, redistimeseries.CreateOptions{Labels: labels2})
+	client.Add("selected-labels-ex-time-serie-2", 4, 15.0)
+
+	ranges, _ := client.MultiReverseRangeWithOptions(1, 10, *redistimeseries.NewMultiRangeOptions().SetSelectedLabels([]string{"az", "location"}), "az=us-east-1")
+
+	fmt.Printf("Ranges: %v\n", ranges)
+	// Output:
+	// Ranges: [{selected-labels-ex-time-serie-1 map[az:us-east-1 location:SF] [{4 2} {2 1}]} {selected-labels-ex-time-serie-2 map[az:us-east-1 location:NY] [{4 15} {1 10}]}]
+}
+
 //nolint:errcheck
 // Exemplifies the usage of MultiGetWithOptions function while using the default MultiGetOptions and while using user defined MultiGetOptions.
 func ExampleClient_MultiGetWithOptions() {
@@ -394,6 +737,9 @@ func ExampleClient_MultiGetWithOptions() {
 		return redis.Dial("tcp", host, redis.DialPassword(password))
 	}}
 	client := redistimeseries.NewClientFromPool(pool, "ts-client-1")
+
+	// ensure the DB is empty
+	client.FlushAll()
 
 	labels1 := map[string]string{
 		"machine": "machine-1",
