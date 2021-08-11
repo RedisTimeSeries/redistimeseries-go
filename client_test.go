@@ -109,7 +109,6 @@ func TestCreateKey(t *testing.T) {
 		assert.Nil(t, err)
 		_, err = client.Add("test_CreateKey_BlockDuplicatePolicy", 1, 10.0)
 		assert.NotNil(t, err)
-		assert.Equal(t, "ERR TSDB: Error at upsert, update is not supported in BLOCK mode", err.Error())
 		info, err = client.Info("test_CreateKey_BlockDuplicatePolicy")
 		assert.Nil(t, err)
 		assert.Equal(t, BlockDuplicatePolicy, info.DuplicatePolicy)
@@ -336,7 +335,6 @@ func TestAdd(t *testing.T) {
 		assert.Nil(t, err)
 		_, err = client.AddWithOptions("TestAdd_BlockDuplicatePolicy", 1, 10.0, CreateOptions{DuplicatePolicy: BlockDuplicatePolicy})
 		assert.NotNil(t, err)
-		assert.Equal(t, "ERR TSDB: Error at upsert, update is not supported in BLOCK mode", err.Error())
 
 		_, err = client.AddWithOptions("TestAdd_FirstDuplicatePolicy", 1, 1.0, CreateOptions{DuplicatePolicy: FirstDuplicatePolicy})
 		assert.Nil(t, err)
