@@ -57,6 +57,7 @@ const (
 	TS_DEL_CMD     string = "TS.DEL"
 )
 
+// Check https://oss.redislabs.com/redistimeseries/configuration/#duplicate_policy for more inforamtion about duplicate policies
 const (
 	BlockDuplicatePolicy DuplicatePolicyType = "block" // an error will occur for any out of order sample
 	FirstDuplicatePolicy DuplicatePolicyType = "first" // ignore the new value

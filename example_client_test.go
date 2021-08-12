@@ -160,6 +160,33 @@ func ExampleClient_Add_duplicateDatapointsLastDuplicatePolicy() {
 	// Latest datapoint: timestamp=1 value=10.000000
 }
 
+// Exemplifies the usage of Add function with a duplicate policy of MIN (override with min value)
+// nolint:errcheck
+func ExampleClient_Add_minDuplicatePolicy() {
+	host := "localhost:6379"
+	password := ""
+	pool := &redis.Pool{Dial: func() (redis.Conn, error) {
+		return redis.Dial("tcp", host, redis.DialPassword(password))
+	}}
+	client := redistimeseries.NewClientFromPool(pool, "ts-client-1")
+
+	// get the default options and set the duplicate policy to MIN (override with latest value)
+	options := redistimeseries.DefaultCreateOptions
+	options.DuplicatePolicy = redistimeseries.MinDuplicatePolicy
+
+	client.CreateKeyWithOptions("time-series-add-duplicate-min", options)
+
+	client.Add("time-series-add-duplicate-min", 1, 1.0)
+	client.Add("time-series-add-duplicate-min", 1, 10.0)
+
+	// Retrieve the minimal data point
+	minDatapoint, _ := client.Get("time-series-add-duplicate-min")
+
+	fmt.Printf("Minimal datapoint: timestamp=%d value=%f\n", minDatapoint.Timestamp, minDatapoint.Value)
+	// Output:
+	// Minimal datapoint: timestamp=1 value=1.000000
+}
+
 // Exemplifies the usage of AddWithOptions function with the default options and some additional time-serie labels
 // nolint:errcheck
 func ExampleClient_AddWithOptions() {
@@ -190,6 +217,7 @@ func ExampleClient_AddWithOptions() {
 }
 
 // Exemplifies the usage of AddWithOptions function with a duplicate policy of LAST (override with latest value)
+// and with MIN (override with minimal value)
 // nolint:errcheck
 func ExampleClient_AddWithOptions_duplicateDatapointsLastDuplicatePolicy() {
 	host := "localhost:6379"
@@ -209,15 +237,26 @@ func ExampleClient_AddWithOptions_duplicateDatapointsLastDuplicatePolicy() {
 	options.DuplicatePolicy = redistimeseries.LastDuplicatePolicy
 	options.Labels = labels
 
-	client.AddWithOptions("time-series-example-duplicate-last", 1, 1, options)
-	client.AddWithOptions("time-series-example-duplicate-last", 1, 10, options)
+	client.AddWithOptions("time-series-example-duplicate", 1, 1, options)
+	client.AddWithOptions("time-series-example-duplicate", 1, 10, options)
 
 	// Retrieve the latest data point
-	latestDatapoint, _ := client.Get("time-series-example-duplicate-last")
+	latestDatapoint, _ := client.Get("time-series-example-duplicate")
+
+	// change the duplicate policy to MIN
+	options.DuplicatePolicy = redistimeseries.MinDuplicatePolicy
+
+	// The current value will not be overridden because the new added value is higher
+	client.AddWithOptions("time-series-example-duplicate", 1, 15, options)
+
+	// Retrieve the latest data point
+	minDatapoint, _ := client.Get("time-series-example-duplicate")
 
 	fmt.Printf("Latest datapoint: timestamp=%d value=%f\n", latestDatapoint.Timestamp, latestDatapoint.Value)
+	fmt.Printf("Minimal datapoint: timestamp=%d value=%f\n", minDatapoint.Timestamp, minDatapoint.Value)
 	// Output:
 	// Latest datapoint: timestamp=1 value=10.000000
+	// Minimal datapoint: timestamp=1 value=10.000000
 }
 
 // Exemplifies the usage of AddWithOptions function with a duplicate policy of MAX (only override if the value is higher than the existing value)
