@@ -1,6 +1,6 @@
 # This dockerfile is used to run unit tests.
 
-FROM golang:1.17.5
+FROM golang:1.18
 
 # install redis
 RUN git clone -b 5.0 --depth 1 https://github.com/antirez/redis.git
