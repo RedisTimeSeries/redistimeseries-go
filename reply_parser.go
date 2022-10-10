@@ -3,8 +3,9 @@ package redis_timeseries_go
 import (
 	"errors"
 	"fmt"
-	"github.com/gomodule/redigo/redis"
 	"strconv"
+
+	"github.com/gomodule/redigo/redis"
 )
 
 func toAggregationType(aggType interface{}) (aggTypeStr AggregationType, err error) {
@@ -92,7 +93,10 @@ func ParseInfo(result interface{}, err error) (info KeyInfo, outErr error) {
 			info.Labels, outErr = ParseLabels(values[i+1])
 		case "duplicatePolicy":
 			info.DuplicatePolicy, outErr = toDuplicatePolicy(values[i+1])
+		case "firstTimestamp":
+			info.FirstTimestamp, outErr = redis.Int64(values[i+1], nil)
 		}
+
 		if outErr != nil {
 			return KeyInfo{}, outErr
 		}
