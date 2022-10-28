@@ -14,11 +14,11 @@ var maxConns = 500
 // NewClient creates a new client connecting to the redis host, and using the given name as key prefix.
 // Addr can be a single host:port pair, or a comma separated list of host:port,host:port...
 // In the case of multiple hosts we create a multi-pool and select connections at random
-func NewClient(addr, name string, authPass *string) *Client {
+func NewClient(addr, name string, authPass *string, dbNumber int) *Client {
 	addrs := strings.Split(addr, ",")
 	var pool ConnPool
 	if len(addrs) == 1 {
-		pool = NewSingleHostPool(addrs[0], authPass)
+		pool = NewSingleHostPool(addrs[0], authPass, dbNumber)
 	} else {
 		pool = NewMultiHostPool(addrs, authPass)
 	}
@@ -158,9 +158,10 @@ func (client *Client) DeleteSerie(key string) (err error) {
 // DeleteRange - Delete data points for a given timeseries and interval range in the form of start and end delete timestamps.
 // Returns the total deleted datapoints.
 // args:
-//  key - time series key name
-//  fromTimestamp - start of range. You can use TimeRangeMinimum to express the minimum possible timestamp.
-//  toTimestamp - end of range. You can use TimeRangeFull or TimeRangeMaximum to express the maximum possible timestamp.
+//
+//	key - time series key name
+//	fromTimestamp - start of range. You can use TimeRangeMinimum to express the minimum possible timestamp.
+//	toTimestamp - end of range. You can use TimeRangeFull or TimeRangeMaximum to express the maximum possible timestamp.
 func (client *Client) DeleteRange(key string, fromTimestamp int64, toTimestamp int64) (totalDeletedSamples int64, err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()

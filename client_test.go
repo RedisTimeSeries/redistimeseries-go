@@ -57,10 +57,11 @@ func getTestConnectionDetails() (string, string) {
 func createClient() *Client {
 	host, password := getTestConnectionDetails()
 	var ptr *string = nil
+	var dbNumber = 0
 	if len(password) > 0 {
 		ptr = MakeStringPtr(password)
 	}
-	return NewClient(host, "test_client", ptr)
+	return NewClient(host, "test_client", ptr, dbNumber)
 }
 
 var client = createClient()
