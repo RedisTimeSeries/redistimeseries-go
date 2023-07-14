@@ -2,13 +2,14 @@ package redis_timeseries_go_test
 
 import (
 	"fmt"
-	redistimeseries "github.com/RedisTimeSeries/redistimeseries-go"
 	"github.com/gomodule/redigo/redis"
+	redistimeseries "github.com/temphiza/redistimeseries-go"
 	"log"
 	"time"
 )
 
 // exemplifies the NewClientFromPool function
+//
 //nolint:errcheck
 func ExampleNewClientFromPool() {
 	host := "localhost:6379"
@@ -767,8 +768,9 @@ func ExampleClient_MultiReverseRangeWithOptions_selectedLabels() {
 	// Ranges: [{selected-labels-ex-time-serie-1 map[az:us-east-1 location:SF] [{4 2} {2 1}]} {selected-labels-ex-time-serie-2 map[az:us-east-1 location:NY] [{4 15} {1 10}]}]
 }
 
-//nolint:errcheck
 // Exemplifies the usage of MultiGetWithOptions function while using the default MultiGetOptions and while using user defined MultiGetOptions.
+//
+//nolint:errcheck
 func ExampleClient_MultiGetWithOptions() {
 	host := "localhost:6379"
 	password := ""
@@ -859,6 +861,7 @@ func ExampleClient_MultiAdd() {
 }
 
 // exemplifies the usage of DeleteSerie function
+//
 //nolint:errcheck
 func ExampleClient_DeleteSerie() {
 	host := "localhost:6379"
@@ -882,6 +885,7 @@ func ExampleClient_DeleteSerie() {
 }
 
 // exemplifies the usage of DeleteRange function
+//
 //nolint:errcheck
 func ExampleClient_DeleteRange() {
 	host := "localhost:6379"
