@@ -1,4 +1,4 @@
-module github.com/RedisTimeSeries/redistimeseries-go
+module github.com/temphiza/redistimeseries-go
 
 go 1.12
 
