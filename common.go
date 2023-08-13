@@ -64,6 +64,7 @@ const (
 	LastDuplicatePolicy  DuplicatePolicyType = "last"  // override with latest value
 	MinDuplicatePolicy   DuplicatePolicyType = "min"   // only override if the value is lower than the existing value
 	MaxDuplicatePolicy   DuplicatePolicyType = "max"   // only override if the value is higher than the existing value
+	SumDuplicatePolicy   DuplicatePolicyType = "sum"   // If a previous sample exists, add the new sample to it so that the updated value is equal to (previous + new). If no previous sample exists, set the updated value equal to the new value.
 )
 
 var aggToString = []AggregationType{AvgAggregation, SumAggregation, MinAggregation, MaxAggregation, CountAggregation, FirstAggregation, LastAggregation, StdPAggregation, StdSAggregation, VarPAggregation, VarSAggregation}
