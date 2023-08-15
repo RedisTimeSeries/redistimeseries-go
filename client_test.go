@@ -275,11 +275,32 @@ func TestClientInfo(t *testing.T) {
 	res, err := client.Info(key)
 	assert.Nil(t, err)
 	expected := KeyInfo{ChunkCount: 1,
-		ChunkSize: 4096, LastTimestamp: 0, RetentionTime: 3600000,
+		ChunkSize: 4096, FirstTimestamp: 0, LastTimestamp: 0, RetentionTime: 3600000,
 		Rules:  []Rule{{DestKey: destKey, BucketSizeSec: 100, AggType: AvgAggregation}},
 		Labels: map[string]string{},
 	}
 	assert.Equal(t, expected, res)
+}
+
+func TestClientInfoRange(t *testing.T) {
+	err := client.FlushAll()
+	assert.Nil(t, err)
+	key := "test_INFORANGE"
+	now := time.Now().Unix()
+	PI := 3.14159265359
+	err = client.CreateKey(key, defaultDuration)
+	assert.Nil(t, err)
+	var i, n int64
+	n = 10
+
+	for i = 0; i <= n; i++ {
+		_, err = client.Add(key, now+i, PI)
+		assert.Nil(t, err)
+	}
+
+	info, _ := client.Info(key)
+	assert.Equal(t, now, info.FirstTimestamp)
+	assert.Equal(t, now+n, info.LastTimestamp)
 }
 
 func TestDeleteRule(t *testing.T) {
@@ -313,6 +334,7 @@ func TestAdd(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, now, storedTimestamp)
 	info, _ := client.Info(key)
+	assert.Equal(t, now, info.FirstTimestamp)
 	assert.Equal(t, now, info.LastTimestamp)
 
 	// Test with auto timestamp
@@ -382,6 +404,7 @@ func TestAddWithRetention(t *testing.T) {
 	_, err = client.AddWithRetention(key, now, PI, 1000000)
 	assert.Nil(t, err)
 	info, _ := client.Info(key)
+	assert.Equal(t, now, info.FirstTimestamp)
 	assert.Equal(t, now, info.LastTimestamp)
 }
 
