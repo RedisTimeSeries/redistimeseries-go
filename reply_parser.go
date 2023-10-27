@@ -29,6 +29,19 @@ func toDuplicatePolicy(duplicatePolicy interface{}) (duplicatePolicyStr Duplicat
 	return
 }
 
+func toChunkType(chunkType interface{}) (chunkTypeStr ChunkType, err error) {
+	chunkTypeStr = ""
+	if chunkType == nil {
+		return
+	}
+	chunkT, err := redis.String(chunkType, nil)
+	if err != nil {
+		return
+	}
+	chunkTypeStr = (ChunkType)(chunkT)
+	return
+}
+
 func ParseRules(ruleInterface interface{}, err error) (rules []Rule, retErr error) {
 	if err != nil {
 		return nil, err
@@ -72,12 +85,23 @@ func ParseInfo(result interface{}, err error) (info KeyInfo, outErr error) {
 	for i := 0; i < len(values); i += 2 {
 		key, outErr = redis.String(values[i], nil)
 		switch key {
+		case "totalSamples":
+			info.TotalSamples, outErr = redis.Int64(values[i+1], nil)
+		case "memoryUsage":
+			info.MemoryUsage, outErr = redis.Int64(values[i+1], nil)
+		case "sourceKey":
+			if values[i+1] == nil {
+				continue
+			}
+			info.SourceKey, outErr = redis.String(values[i+1], nil)
 		case "rules":
 			info.Rules, outErr = ParseRules(values[i+1], nil)
 		case "retentionTime":
 			info.RetentionTime, outErr = redis.Int64(values[i+1], nil)
 		case "chunkCount":
 			info.ChunkCount, outErr = redis.Int64(values[i+1], nil)
+		case "chunkType":
+			info.ChunkType, outErr = toChunkType(values[i+1])
 		// Backwards compatible
 		case "maxSamplesPerChunk":
 			var v int64
@@ -86,6 +110,8 @@ func ParseInfo(result interface{}, err error) (info KeyInfo, outErr error) {
 			info.ChunkSize = 16 * v
 		case "chunkSize":
 			info.ChunkSize, outErr = redis.Int64(values[i+1], nil)
+		case "firstTimestamp":
+			info.FirstTimestamp, outErr = redis.Int64(values[i+1], nil)
 		case "lastTimestamp":
 			info.LastTimestamp, outErr = redis.Int64(values[i+1], nil)
 		case "labels":

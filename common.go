@@ -16,6 +16,9 @@ type ReducerType string
 //go:generate stringer -type=DuplicatePolicyType
 type DuplicatePolicyType string
 
+//go:generate stringer -type=ChunkType
+type ChunkType string
+
 const (
 	SumReducer ReducerType = "SUM"
 	MinReducer ReducerType = "MIN"
@@ -66,6 +69,11 @@ const (
 	MaxDuplicatePolicy   DuplicatePolicyType = "max"   // only override if the value is higher than the existing value
 )
 
+const (
+	CompressedChunkType   ChunkType = "compressed"
+	UncompressedChunkType ChunkType = "uncompressed"
+)
+
 var aggToString = []AggregationType{AvgAggregation, SumAggregation, MinAggregation, MaxAggregation, CountAggregation, FirstAggregation, LastAggregation, StdPAggregation, StdSAggregation, VarPAggregation, VarSAggregation}
 
 // CreateOptions are a direct mapping to the options provided when creating a new time-series
@@ -103,11 +111,16 @@ type Rule struct {
 }
 
 type KeyInfo struct {
+	TotalSamples       int64
+	MemoryUsage        int64
 	ChunkCount         int64
+	ChunkType          ChunkType
 	MaxSamplesPerChunk int64 // As of RedisTimeseries >= v1.4 MaxSamplesPerChunk is deprecated in favor of ChunkSize
 	ChunkSize          int64
+	FirstTimestamp     int64
 	LastTimestamp      int64
 	RetentionTime      int64
+	SourceKey          string
 	Rules              []Rule
 	Labels             map[string]string
 	DuplicatePolicy    DuplicatePolicyType // Duplicate sample policy

@@ -274,10 +274,15 @@ func TestClientInfo(t *testing.T) {
 	assert.Nil(t, err)
 	res, err := client.Info(key)
 	assert.Nil(t, err)
-	expected := KeyInfo{ChunkCount: 1,
-		ChunkSize: 4096, LastTimestamp: 0, RetentionTime: 3600000,
-		Rules:  []Rule{{DestKey: destKey, BucketSizeSec: 100, AggType: AvgAggregation}},
-		Labels: map[string]string{},
+	assert.Greater(t, res.MemoryUsage, int64(0))
+	res.MemoryUsage = 0
+	expected := KeyInfo{
+		TotalSamples: 0, MemoryUsage: 0,
+		ChunkCount: 1, ChunkSize: 4096, ChunkType: CompressedChunkType,
+		FirstTimestamp: 0, LastTimestamp: 0, RetentionTime: 3600000,
+		SourceKey: "",
+		Rules:     []Rule{{DestKey: destKey, BucketSizeSec: 100, AggType: AvgAggregation}},
+		Labels:    map[string]string{},
 	}
 	assert.Equal(t, expected, res)
 }
