@@ -103,6 +103,7 @@ type Rule struct {
 }
 
 type KeyInfo struct {
+	TotalSamples       int64
 	ChunkCount         int64
 	MaxSamplesPerChunk int64 // As of RedisTimeseries >= v1.4 MaxSamplesPerChunk is deprecated in favor of ChunkSize
 	ChunkSize          int64

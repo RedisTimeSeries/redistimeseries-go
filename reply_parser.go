@@ -72,6 +72,8 @@ func ParseInfo(result interface{}, err error) (info KeyInfo, outErr error) {
 	for i := 0; i < len(values); i += 2 {
 		key, outErr = redis.String(values[i], nil)
 		switch key {
+		case "totalSamples":
+			info.TotalSamples, outErr = redis.Int64(values[i+1], nil)
 		case "rules":
 			info.Rules, outErr = ParseRules(values[i+1], nil)
 		case "retentionTime":
