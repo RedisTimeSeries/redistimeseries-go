@@ -14,6 +14,10 @@ Go client for RedisTimeSeries (https://github.com/RedisTimeSeries/redistimeserie
 
 Client and ConnPool based on the work of dvirsky and mnunberg on https://github.com/RediSearch/redisearch-go
 
+## Deprecation notice
+
+This library is now deprecated. It's features have been merged into [go-redis](https://github.com/redis/go-redis).
+
 ## Installing
 
 ```sh
